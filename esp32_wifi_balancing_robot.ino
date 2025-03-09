@@ -23,6 +23,7 @@
 #include "driver/timer.h"
 #include "driver/ledc.h"
 #include "esp32-hal-ledc.h"
+#include "secret.h"
 
 const char* PARAM_FADER1 = "fader1";
 const char* PARAM_FADER2 = "fader2";
@@ -37,8 +38,8 @@ const char* PARAM_FADER5 = "fader5";
 const char* PARAM_FADER6 = "fader6";
 
 /* Wifi Crdentials */
-String sta_ssid = "$your_ssid_maximum_32_characters";     // set Wifi network you want to connect to
-String sta_password = "$your_pswd_maximum_32_characters";        // set password for Wifi network
+String sta_ssid = WIFI_SSID;
+String sta_password = WIFI_PASS;
 
 unsigned long previousMillis = 0;
 
@@ -82,10 +83,9 @@ void setup() {
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
 
-  ledcSetup(6, 50, 16); // channel 6, 50 Hz, 16-bit width
-  ledcAttachPin(PIN_SERVO, 6);   // GPIO 22 assigned to channel 1
+  ledcAttach(PIN_SERVO, 50, 16); // 50 Hz, 16-bit width
   delay(50);
-  ledcWrite(6, SERVO_AUX_NEUTRO);
+  ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
   
   Wire.begin();
   initMPU6050();

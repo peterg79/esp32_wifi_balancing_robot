@@ -59,15 +59,13 @@ void IRAM_ATTR timer2ISR() {
 
 void initTimers() {
 
-	timer1 = timerBegin(0, 40, true);
-	timerAttachInterrupt(timer1, &timer1ISR, true);
-	timerAlarmWrite(timer1, ZERO_SPEED, true);
+	//timer 2Mhz resolution
+	timer1 = timerBegin(2000000);
+	timerAttachInterrupt(timer1, &timer1ISR);
+	timerAlarm(timer1, ZERO_SPEED, true, 0);
 
-	timer2 = timerBegin(1, 40, true);
-	timerAttachInterrupt(timer2, &timer2ISR, true);
-	timerAlarmWrite(timer2, ZERO_SPEED, true);
-
-	timerAlarmEnable(timer1);
-	timerAlarmEnable(timer2);
-
+	//timer 2Mhz resolution
+	timer2 = timerBegin(2000000);
+	timerAttachInterrupt(timer2, &timer2ISR);
+	timerAlarm(timer2, ZERO_SPEED, true, 0);
 }

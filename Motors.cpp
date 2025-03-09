@@ -52,7 +52,7 @@ void setMotorSpeedM1(int16_t tspeed)
   if (timer_period > ZERO_SPEED)   // Check for minimun speed (maximun period without overflow)
     timer_period = ZERO_SPEED;
 
-  timerAlarmWrite(timer1, timer_period, true);
+  timerAlarm(timer1, timer_period, true, 0);
 }
 
 // Set speed of Stepper Motor2
@@ -98,6 +98,6 @@ void setMotorSpeedM2(int16_t tspeed)
   if (timer_period > ZERO_SPEED)   // Check for minimun speed (maximun period without overflow)
     timer_period = ZERO_SPEED;
 
-  timerAlarmWrite(timer2, timer_period, true);
+  timerAlarm(timer2, timer_period, true, 0);
 }
 
