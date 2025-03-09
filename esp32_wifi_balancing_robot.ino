@@ -11,6 +11,7 @@
 #include <Arduino.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <ESPmDNS.h>
 #include "Control.h"
 #include "MPU6050.h"
 #include "Motors.h"
@@ -93,13 +94,18 @@ void setup() {
   // Set NodeMCU Wifi hostname based on chip mac address
   char chip_id[15];
   snprintf(chip_id, 15, "%04X", (uint16_t)(ESP.getEfuseMac()>>32));
-  String hostname = "esp32brobot-" + String(chip_id);
+  #ifndef WIFI_HOSTNAME_PREFIX
+  # define WIFI_HOSTNAME_PREFIX "robot"
+  #endif // WIFI_HOSTNAME_PREFIX
+  String hostname = String(WIFI_HOSTNAME_PREFIX) + "-" + String(chip_id);
 
   Serial.println();
   Serial.println("Hostname: "+hostname);
 
   // first, set NodeMCU as STA mode to connect with a Wifi network
   WiFi.mode(WIFI_STA);
+  // https://github.com/espressif/arduino-esp32/issues/2537
+  WiFi.hostname(hostname);
   WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
   Serial.println("");
   Serial.print("Connecting to: ");
@@ -114,6 +120,10 @@ void setup() {
     delay(500);
     Serial.print(".");
     currentMillis = millis();
+  }
+
+  if (!MDNS.begin(hostname.c_str())) {
+    Serial.println("Error setting up MDNS responder!");
   }
 
   // if failed to connect with Wifi network set NodeMCU as AP mode
