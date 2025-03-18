@@ -267,14 +267,14 @@ void setup() {
   for (uint8_t k = 0; k < 5; k++) {
     setMotorSpeedM1(5);
     setMotorSpeedM2(5);
-    ledcWrite(6, SERVO_AUX_NEUTRO + 250);
+    ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO + 250);
     delay(200);
     setMotorSpeedM1(-5);
     setMotorSpeedM2(-5);
-    ledcWrite(6, SERVO_AUX_NEUTRO - 250);
+    ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO - 250);
     delay(200);
   }
-  ledcWrite(6, SERVO_AUX_NEUTRO);
+  ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
 
   ArduinoOTA.begin();   // enable to receive update/upload firmware via Wifi OTA
 }
@@ -379,14 +379,14 @@ void loop() {
     // Push1 Move servo arm
     if (OSCpush[0]) {
       if (angle_adjusted > -40)
-        ledcWrite(6, SERVO_MAX_PULSEWIDTH);
+        ledcWrite(PIN_SERVO, SERVO_MAX_PULSEWIDTH);
       else
-        ledcWrite(6, SERVO_MIN_PULSEWIDTH);
+        ledcWrite(PIN_SERVO, SERVO_MIN_PULSEWIDTH);
     } else
-      ledcWrite(6, SERVO_AUX_NEUTRO);
+      ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
 
     // Servo2
-    //ledcWrite(6, SERVO2_NEUTRO + (OSCfader[2] - 0.5) * SERVO2_RANGE);
+    //ledcWrite(PIN_SERVO, SERVO2_NEUTRO + (OSCfader[2] - 0.5) * SERVO2_RANGE);
 
     // Normal condition?
     if ((angle_adjusted < 56) && (angle_adjusted > -56)) {
