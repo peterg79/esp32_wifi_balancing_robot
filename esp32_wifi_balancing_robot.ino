@@ -26,6 +26,12 @@
 #include "esp32-hal-ledc.h"
 #include "secret.h"
 
+// re-generate with the following command:
+// sed -e 's,\",\\\",g' control.html | awk '{print "\""$0"\\n\""}' > control.txt
+const char* HTML =
+#include "control.txt"
+;
+
 const char* PARAM_FADER1 = "fader1";
 const char* PARAM_FADER2 = "fader2";
 const char* PARAM_PUSH1 = "push1";
@@ -104,6 +110,7 @@ void setup() {
 
   // first, set NodeMCU as STA mode to connect with a Wifi network
   WiFi.mode(WIFI_STA);
+  //WiFi.mode(WIFI_AP);
   // https://github.com/espressif/arduino-esp32/issues/2537
   WiFi.hostname(hostname);
   WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
@@ -156,6 +163,7 @@ void setup() {
     String inputValue;
     String inputMessage;
     OSCnewMessage = 1;
+    bool returnHtml = false;
     
     // Get value for Forward/Backward
     if (request->hasParam(PARAM_FADER1)) {
@@ -247,9 +255,16 @@ void setup() {
     }
     else {
       inputValue = "No message sent";
+      returnHtml = true;
     }
     Serial.println(inputMessage+'='+inputValue);
-    request->send(200, "text/text", "");
+    if (returnHtml) {
+      request->send(200, "text/html", HTML);
+    } else {
+      char rsp[256];
+      sprintf(rsp, "{\"angle_adjusted\": %.2f}", angle_adjusted);
+      request->send(200, "text/json", rsp);
+    }
   });
 
   server.onNotFound (notFound);    // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"

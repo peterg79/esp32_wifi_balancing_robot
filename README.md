@@ -7,3 +7,7 @@ This repository is a fork of [bluino/esp32_wifi_balancing_robot](https://github.
 
 To compile, install [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer) and [AsyncTCP](https://github.com/ESP32Async/AsyncTCP) libraries.
 Then, copy [secret-template.h](secret-template.h) to `secret.h` and edit credentials there.
+Generate `control.txt` using the following command:
+`sed -e 's,\",\\\",g' control.html | awk '{print "\""$0"\\n\""}' > control.txt`
+
+Then you're ready to compile and upload the firmware.
