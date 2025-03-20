@@ -11,3 +11,7 @@ Generate `control.txt` using the following command:
 `sed -e 's,\",\\\",g' control.html | awk '{print "\""$0"\\n\""}' > control.txt`
 
 Then you're ready to compile and upload the firmware.
+
+TODO:
+- https://ai.thestempedia.com/docs/dabble-app/gamepad-module/
+- https://remotexy.com/en/examples/
