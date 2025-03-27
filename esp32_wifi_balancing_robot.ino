@@ -1,17 +1,24 @@
 /*
- * esp32_wifi_balancing_robot.ino
- *
- *  Created on: 23.02.2021
- *      Author: anonymous
- */
- 
+   -- Esp32 Robot --
+
+   This source code of graphical user interface
+   has been generated automatically by RemoteXY editor.
+   To compile this code using RemoteXY library 3.1.13 or later version
+   download by link http://remotexy.com/en/library/
+   To connect using RemoteXY mobile app by link http://remotexy.com/en/download/
+     - for ANDROID 4.15.01 or later version;
+     - for iOS 1.12.1 or later version;
+
+   This source code is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+*/
+
 #include <Wire.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
 #include <Arduino.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <ESPmDNS.h>
 #include "Control.h"
 #include "MPU6050.h"
 #include "Motors.h"
@@ -26,55 +33,77 @@
 #include "esp32-hal-ledc.h"
 #include "secret.h"
 
-// re-generate with the following command:
-// sed -e 's,\",\\\",g' control.html | awk '{print "\""$0"\\n\""}' > control.txt
-const char* HTML =
-#include "control.txt"
-;
+//////////////////////////////////////////////
+//        RemoteXY include library          //
+//////////////////////////////////////////////
 
-const char* PARAM_FADER1 = "fader1";
-const char* PARAM_FADER2 = "fader2";
-const char* PARAM_PUSH1 = "push1";
-const char* PARAM_PUSH2 = "push2";
-const char* PARAM_PUSH3 = "push3";
-const char* PARAM_PUSH4 = "push4";
-const char* PARAM_TOGGLE1 = "toggle1";
-const char* PARAM_FADER3 = "fader3";
-const char* PARAM_FADER4 = "fader4";
-const char* PARAM_FADER5 = "fader5";
-const char* PARAM_FADER6 = "fader6";
+// you can enable debug logging to Serial at 115200
+//#define REMOTEXY__DEBUGLOG
 
-/* Wifi Crdentials */
-String sta_ssid = WIFI_SSID;
-String sta_password = WIFI_PASS;
+// RemoteXY select connection mode and include library
+#define REMOTEXY_MODE__WIFI
 
-unsigned long previousMillis = 0;
+#include <WiFi.h>
 
-AsyncWebServer server(80);
+// RemoteXY connection settings
+#define REMOTEXY_WIFI_SSID WIFI_SSID
+#define REMOTEXY_WIFI_PASSWORD WIFI_PASS
+#define REMOTEXY_SERVER_PORT 6377
+#define REMOTEXY_ACCESS_PASSWORD "none"
 
-void initMPU6050() {
-  MPU6050_setup();
-  delay(500);
-  MPU6050_calibrate();
-}
+
+#include <RemoteXY.h>
+
+// RemoteXY GUI configuration
+#pragma pack(push, 1)
+uint8_t RemoteXY_CONF[] =   // 102 bytes
+  { 255,5,0,0,0,95,0,19,0,0,0,69,83,80,51,50,32,82,111,98,
+  111,116,0,24,2,106,200,200,84,1,1,4,0,10,41,8,25,25,88,8,
+  24,24,48,4,26,24,79,78,0,31,79,70,70,0,5,11,102,85,85,126,
+  10,60,60,32,213,26,31,1,25,39,57,57,20,28,24,24,0,213,31,83,
+  101,114,118,111,0,1,25,105,57,57,87,45,24,24,4,24,31,240,159,148,
+  138,0 };
+
+// this structure defines all the variables and events of your control interface
+struct {
+
+    // input variables
+  uint8_t pushSwitch_01; // =1 if state is ON, else =0
+  int8_t joy_x; // from -100 to 100
+  int8_t joy_y; // from -100 to 100
+  uint8_t servo; // =1 if button pressed, else =0
+  uint8_t buzzer; // =1 if button pressed, else =0
+
+    // other variable
+  uint8_t connect_flag;  // =1 if wire connected, else =0
+
+} RemoteXY;
+#pragma pack(pop)
+
+/////////////////////////////////////////////
+//           END RemoteXY include          //
+/////////////////////////////////////////////
+
+#define PIN_PUSHSWITCH_01 32
 
 void initTimers();
 
-void notFound(AsyncWebServerRequest *request) {
-  request->send(404, "text/plain", "Not found");
-}
-
-void setup() {
-  Serial.begin(115200);         // set up seriamonitor at 115200 bps
+void setup()
+{
+  Serial.begin(115200);
   Serial.setDebugOutput(true);
-  Serial.println();
-  Serial.println("*ESP32 Camera Balancing Robot*");
-  Serial.println("--------------------------------------------------------");
+  Serial.println("Booting");
 
+  // TODO you setup code
+
+  /// Robot init
+  Serial.println();
+  Serial.println(F("*ESP32 Self Balancing Robot*"));
+  Serial.println(F("--------------------------------------------------------"));
 
   pinMode(PIN_ENABLE_MOTORS, OUTPUT);
   digitalWrite(PIN_ENABLE_MOTORS, HIGH);
-  
+
   pinMode(PIN_MOTOR1_DIR, OUTPUT);
   pinMode(PIN_MOTOR1_STEP, OUTPUT);
   pinMode(PIN_MOTOR2_DIR, OUTPUT);
@@ -84,199 +113,27 @@ void setup() {
   pinMode(PIN_LED, OUTPUT);
   digitalWrite(PIN_LED, LOW);
 
+  // led up as wifi is connected
   pinMode(PIN_WIFI_LED, OUTPUT);
   digitalWrite(PIN_WIFI_LED, LOW);
-  
+
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
 
   ledcAttach(PIN_SERVO, 50, 16); // 50 Hz, 16-bit width
   delay(50);
   ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
-  
+
+  Serial.println(F("Wire.begin()"));
   Wire.begin();
-  initMPU6050();
 
-  // Set NodeMCU Wifi hostname based on chip mac address
-  char chip_id[15];
-  snprintf(chip_id, 15, "%04X", (uint16_t)(ESP.getEfuseMac()>>32));
-  #ifndef WIFI_HOSTNAME_PREFIX
-  # define WIFI_HOSTNAME_PREFIX "robot"
-  #endif // WIFI_HOSTNAME_PREFIX
-  String hostname = String(WIFI_HOSTNAME_PREFIX) + "-" + String(chip_id);
-
-  Serial.println();
-  Serial.println("Hostname: "+hostname);
-
-  // first, set NodeMCU as STA mode to connect with a Wifi network
-  WiFi.mode(WIFI_STA);
-  //WiFi.mode(WIFI_AP);
-  // https://github.com/espressif/arduino-esp32/issues/2537
-  WiFi.hostname(hostname);
-  WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
-  Serial.println("");
-  Serial.print("Connecting to: ");
-  Serial.println(sta_ssid);
-  Serial.print("Password: ");
-  Serial.println(sta_password);
-
-  // try to connect with Wifi network about 8 seconds
-  unsigned long currentMillis = millis();
-  previousMillis = currentMillis;
-  while (WiFi.status() != WL_CONNECTED && currentMillis - previousMillis <= 8000) {
-    delay(500);
-    Serial.print(".");
-    currentMillis = millis();
-  }
-
-  if (!MDNS.begin(hostname.c_str())) {
-    Serial.println("Error setting up MDNS responder!");
-  }
-
-  // if failed to connect with Wifi network set NodeMCU as AP mode
-  IPAddress myIP;
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("");
-    Serial.println("*WiFi-STA-Mode*");
-    Serial.print("IP: ");
-    myIP=WiFi.localIP();
-    Serial.println(myIP);
-    digitalWrite(PIN_WIFI_LED, HIGH);    // Wifi LED on when connected to Wifi as STA mode
-    delay(2000);
-  } else {
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(hostname.c_str());
-    myIP = WiFi.softAPIP();
-    Serial.println("");
-    Serial.println("WiFi failed connected to " + sta_ssid);
-    Serial.println("");
-    Serial.println("*WiFi-AP-Mode*");
-    Serial.print("AP IP address: ");
-    Serial.println(myIP);
-    digitalWrite(PIN_WIFI_LED, LOW);   // Wifi LED off when status as AP mode
-    delay(2000);
-  }
-
-
-  // Send a GET request to <ESP_IP>/?fader=<inputValue>
-    server.on("/", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    String inputValue;
-    String inputMessage;
-    OSCnewMessage = 1;
-    bool returnHtml = false;
-    
-    // Get value for Forward/Backward
-    if (request->hasParam(PARAM_FADER1)) {
-      OSCpage = 1;
-      inputValue = request->getParam(PARAM_FADER1)->value();
-      inputMessage = PARAM_FADER1;
-      OSCfader[0] = inputValue.toFloat();
-    }
-    // Get value for Right/Left
-    else if (request->hasParam(PARAM_FADER2)) {
-      OSCpage = 1;
-      inputValue = request->getParam(PARAM_FADER2)->value();
-      inputMessage = PARAM_FADER2;
-      OSCfader[1] = inputValue.toFloat();
-    }
-    // Get value for Servo0
-    else if (request->hasParam(PARAM_PUSH1)) {
-      OSCpage = 1;
-      inputValue = request->getParam(PARAM_PUSH1)->value();
-      inputMessage = PARAM_PUSH1;
-      if(inputValue.equals("1")) OSCpush[0]=1;
-      else OSCpush[0]=0;
-    }
-    // Get value for Setting
-    else if (request->hasParam(PARAM_PUSH2)) {
-      OSCpage = 2;
-      inputValue = request->getParam(PARAM_PUSH2)->value();
-      inputMessage = PARAM_PUSH2;
-      if(inputValue.equals("1")) OSCpush[2]=1;
-      else OSCpush[2]=0;
-    }
-    // Get value for Buzzer
-    else if (request->hasParam(PARAM_PUSH3)) {
-      inputValue = request->getParam(PARAM_PUSH3)->value();
-      inputMessage = PARAM_PUSH3;
-      if(inputValue.equals("1")) {
-        digitalWrite(PIN_BUZZER, HIGH);
-        delay(150);
-        digitalWrite(PIN_BUZZER, LOW);
-        delay(80);
-        digitalWrite(PIN_BUZZER, HIGH);
-        delay(150);
-        digitalWrite(PIN_BUZZER, LOW);
-        delay(80);
-      }
-    }
-    // Get value for Led
-    else if (request->hasParam(PARAM_PUSH4)) {
-      inputValue = request->getParam(PARAM_PUSH4)->value();
-      inputMessage = PARAM_PUSH4;
-      if(inputValue.equals("1")) digitalWrite(PIN_LED, HIGH);
-      else digitalWrite(PIN_LED, LOW);
-    }
-    // Get value for mode PRO
-    else if (request->hasParam(PARAM_TOGGLE1)) {
-      OSCpage = 1;
-      inputValue = request->getParam(PARAM_TOGGLE1)->value();
-      inputMessage = PARAM_TOGGLE1;
-      if(inputValue.equals("1")) OSCtoggle[0]=1;
-      else OSCtoggle[0]=0;
-    }
-    // Get value for P-Stability
-    else if (request->hasParam(PARAM_FADER3)) {
-      OSCpage = 2;
-      inputValue = request->getParam(PARAM_FADER3)->value();
-      inputMessage = PARAM_FADER3;
-      OSCfader[0] = inputValue.toFloat();
-    }
-    // Get value for D-Stability
-    else if (request->hasParam(PARAM_FADER4)) {
-      OSCpage = 2;
-      inputValue = request->getParam(PARAM_FADER4)->value();
-      inputMessage = PARAM_FADER4;
-      OSCfader[0] = inputValue.toFloat();
-    }
-    // Get value for P-Speed
-    else if (request->hasParam(PARAM_FADER5)) {
-      OSCpage = 2;
-      inputValue = request->getParam(PARAM_FADER5)->value();
-      inputMessage = PARAM_FADER5;
-      OSCfader[0] = inputValue.toFloat();
-    }
-    // Get value for I-Speed
-    else if (request->hasParam(PARAM_FADER6)) {
-      OSCpage = 2;
-      inputValue = request->getParam(PARAM_FADER6)->value();
-      inputMessage = PARAM_FADER6;
-      OSCfader[0] = inputValue.toFloat();
-    }
-    else {
-      inputValue = "No message sent";
-      returnHtml = true;
-    }
-    Serial.println(inputMessage+'='+inputValue);
-    if (returnHtml) {
-      request->send(200, "text/html", HTML);
-    } else {
-      char rsp[256];
-      sprintf(rsp, "{\"angle_adjusted\": %.2f}", angle_adjusted);
-      request->send(200, "text/json", rsp);
-    }
-  });
-
-  server.onNotFound (notFound);    // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
-  server.begin();                           // actually start the server
+  Serial.println(F("MPU6050_setup()"));
+  MPU6050_setup();
+  delay(500);
+  Serial.println(F("MPU6050_calibrate()"));
+  MPU6050_calibrate();
 
   initTimers();
-
-  // default neutral values
-  OSCfader[0] = 0.5;
-  OSCfader[1] = 0.5;
-  OSCfader[2] = 0.5;
-  OSCfader[3] = 0.5;
 
   digitalWrite(PIN_ENABLE_MOTORS, LOW);
   for (uint8_t k = 0; k < 5; k++) {
@@ -291,23 +148,37 @@ void setup() {
   }
   ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
 
-  ArduinoOTA.begin();   // enable to receive update/upload firmware via Wifi OTA
+  /// Robot init end
+  Serial.println(F("RemoteXY_Init ()"));
+  RemoteXY_Init ();
+  pinMode (PIN_PUSHSWITCH_01, OUTPUT);
+
+  /// Arduino OTA
+  Serial.println(F("ArduinoOTA.begin()"));
+  ArduinoOTA.begin();
+  /// Arduino OTA End
+
+  // TODO: web server
+  Serial.println(F("Setup complete"));
 }
 
-void loop() {
+void loop()
+{
+  //Serial.println(F("Loop start"));
+  //Serial.println(F("OTA"));
   ArduinoOTA.handle();
+  //Serial.println(F("RemoteXY"));
+  RemoteXY_Handler ();
+  //Serial.println(F("LED"));
+  digitalWrite(PIN_PUSHSWITCH_01, (RemoteXY.pushSwitch_01==0)?LOW:HIGH);
 
-  if (OSCnewMessage) {
-    OSCnewMessage = 0;
-    processOSCMsg();
-  }
+  // TODO you loop code
+  // use the RemoteXY structure for data transfer
+  // do not call delay(), use instead RemoteXY_delay()
 
   timer_value = micros();
-
   if (MPU6050_newData()) {
-    
     MPU6050_read_3axis();
-    
     dt = (timer_value - timer_old) * 0.000001; // dt in seconds
     //Serial.println(timer_value - timer_old);
     timer_old = timer_value;
@@ -319,7 +190,6 @@ void loop() {
     if ((MPU_sensor_angle > -15) && (MPU_sensor_angle < 15))
       angle_adjusted_filtered = angle_adjusted_filtered * 0.99 + MPU_sensor_angle * 0.01;
 
-
     // We calculate the estimated robot speed:
     // Estimated_Speed = angular_velocity_of_stepper_motors(combined) - angular_velocity_of_robot(angle measured by IMU)
     actual_robot_speed = (speed_M1 + speed_M2) / 2; // Positive: forward
@@ -327,7 +197,6 @@ void loop() {
     int16_t angular_velocity = (angle_adjusted - angle_adjusted_Old) * 25.0; // 25 is an empirical extracted factor to adjust for real units
     int16_t estimated_speed = -actual_robot_speed + angular_velocity;
     estimated_speed_filtered = estimated_speed_filtered * 0.9 + (float) estimated_speed * 0.1; // low pass filter on estimated speed
-
 
     if (positionControlMode) {
       // POSITION CONTROL. INPUT: Target steps for each motor. Output: motors speed
@@ -361,12 +230,13 @@ void loop() {
     motor2 = constrain(motor2, -MAX_CONTROL_OUTPUT, MAX_CONTROL_OUTPUT);
 
     int angle_ready;
-    if (OSCpush[0])     // If we press the SERVO button we start to move
+    if (RemoteXY.servo == 1)     // If we press the SERVO button we start to move
       angle_ready = 82;
     else
       angle_ready = 74;  // Default angle
+
     if ((angle_adjusted < angle_ready) && (angle_adjusted > -angle_ready)) // Is robot ready (upright?)
-        {
+    {
       // NORMAL MODE
       digitalWrite(PIN_ENABLE_MOTORS, LOW);  // Motors enable
       // NOW we send the commands to the motors
@@ -390,16 +260,15 @@ void loop() {
       throttle = 0;
       steering = 0;
     }
-    
+
     // Push1 Move servo arm
-    if (OSCpush[0]) {
+    if (RemoteXY.servo == 1) {
       if (angle_adjusted > -40)
         ledcWrite(PIN_SERVO, SERVO_MAX_PULSEWIDTH);
       else
         ledcWrite(PIN_SERVO, SERVO_MIN_PULSEWIDTH);
     } else
       ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
-
     // Servo2
     //ledcWrite(PIN_SERVO, SERVO2_NEUTRO + (OSCfader[2] - 0.5) * SERVO2_RANGE);
 
@@ -416,96 +285,33 @@ void loop() {
       Kp_thr = KP_THROTTLE_RAISEUP;
       Ki_thr = KI_THROTTLE_RAISEUP;
     }
-
-  } // End of new IMU data
-
-}
-
-
-
-void processOSCMsg() {
-  if (OSCpage == 1) {
-    if (modifing_control_parameters)  // We came from the settings screen
-    {
-      OSCfader[0] = 0.5; // default neutral values
-      OSCfader[1] = 0.5; // default neutral values
-      OSCtoggle[0] = 0;  // Normal mode
-      mode = 0;
-      modifing_control_parameters = false;
-    }
-
-    if (OSCmove_mode) {
-      Serial.print("M ");
-      Serial.print(OSCmove_speed);
-      Serial.print(" ");
-      Serial.print(OSCmove_steps1);
-      Serial.print(",");
-      Serial.println(OSCmove_steps2);
-      positionControlMode = true;
-      OSCmove_mode = false;
-      target_steps1 = steps1 + OSCmove_steps1;
-      target_steps2 = steps2 + OSCmove_steps2;
-    } else {
-      positionControlMode = false;
-      throttle = (OSCfader[0] - 0.5) * max_throttle;
-      // We add some exponential on steering to smooth the center band
-      steering = OSCfader[1] - 0.5;
-      if (steering > 0)
-        steering = (steering * steering + 0.5 * steering) * max_steering;
-      else
-        steering = (-steering * steering + 0.5 * steering) * max_steering;
-    }
-
-    if ((mode == 0) && (OSCtoggle[0])) {
-      // Change to PRO mode
-      max_throttle = MAX_THROTTLE_PRO;
-      max_steering = MAX_STEERING_PRO;
-      max_target_angle = MAX_TARGET_ANGLE_PRO;
-      mode = 1;
-    }
-    if ((mode == 1) && (OSCtoggle[0] == 0)) {
-      // Change to NORMAL mode
-      max_throttle = MAX_THROTTLE;
-      max_steering = MAX_STEERING;
-      max_target_angle = MAX_TARGET_ANGLE;
-      mode = 0;
-    }
-  } else if (OSCpage == 2) { // OSC page 2
-    if (!modifing_control_parameters) {
-      for (uint8_t i = 0; i < 4; i++)
-        OSCfader[i] = 0.5;
-      OSCtoggle[0] = 0;
-
-      modifing_control_parameters = true;
-      //OSC_MsgSend("$P2", 4);
-    }
-    // User could adjust KP, KD, KP_THROTTLE and KI_THROTTLE (fadder3,4,5,6)
-    // Now we need to adjust all the parameters all the times because we dont know what parameter has been moved
-    Kp_user = KP * 2 * OSCfader[0];
-    Kd_user = KD * 2 * OSCfader[1];
-    Kp_thr_user = KP_THROTTLE * 2 * OSCfader[2];
-    Ki_thr_user = KI_THROTTLE * 2 * OSCfader[3];
-    // Send a special telemetry message with the new parameters
-    char auxS[50];
-    sprintf(auxS, "$tP,%d,%d,%d,%d", int(Kp_user * 1000), int(Kd_user * 1000), int(Kp_thr_user * 1000), int(Ki_thr_user * 1000));
-    //OSC_MsgSend(auxS, 50);
-
-
-    // Calibration mode??
-    if (OSCpush[2] == 1) {
-      Serial.print("Calibration MODE ");
-      angle_offset = angle_adjusted_filtered;
-      Serial.println(angle_offset);
-    }
-
-    // Kill robot => Sleep
-    while (OSCtoggle[0] == 1) {
-      //Reset external parameters
-      PID_errorSum = 0;
-      timer_old = millis();
-      setMotorSpeedM1(0);
-      setMotorSpeedM2(0);
-      digitalWrite(PIN_ENABLE_MOTORS, HIGH);  // Disable motors
-    }
   }
+
+  static int sound_mode = 0;
+  uint32_t sound_start = 0;
+  if(sound_mode == 0 && RemoteXY.buzzer) {
+    sound_mode = 1;
+    sound_start = millis();
+    digitalWrite(PIN_BUZZER, HIGH);
+  }
+  uint32_t now = millis();
+  switch(sound_mode) {
+    case 1:
+      if (now >= sound_start + 150) {
+        sound_mode = 2;
+        digitalWrite(PIN_BUZZER, LOW);
+      }
+    case 2:
+      if (now >= sound_start + 150 + 80) {
+        sound_mode = 3;
+        digitalWrite(PIN_BUZZER, HIGH);
+      }
+    case 3:
+      if (now >= sound_start + 150 + 80 + 150) {
+        sound_mode = 0;
+        digitalWrite(PIN_BUZZER, LOW);
+      }
+  }
+
+  //Serial.println(F("Loop end"));
 }
