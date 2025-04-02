@@ -8,15 +8,15 @@
 #ifndef DEFINES_H_
 #define DEFINES_H_
 
-#define PIN_ENABLE_MOTORS 12        
-#define PIN_MOTOR1_DIR 27    
-#define PIN_MOTOR1_STEP 14    
-#define PIN_MOTOR2_DIR 25    
-#define PIN_MOTOR2_STEP 26   
-#define PIN_SERVO 13    
-#define PIN_LED 32         
-#define PIN_WIFI_LED 2        
-#define PIN_BUZZER 33         
+#define PIN_ENABLE_MOTORS 12
+#define PIN_MOTOR1_DIR 27
+#define PIN_MOTOR1_STEP 14
+#define PIN_MOTOR2_DIR 25
+#define PIN_MOTOR2_STEP 26
+#define PIN_SERVO 13
+#define PIN_LED 32
+#define PIN_WIFI_LED 2
+#define PIN_BUZZER 33
 
 // NORMAL MODE PARAMETERS (MAXIMUN SETTINGS)
 #define MAX_THROTTLE 550

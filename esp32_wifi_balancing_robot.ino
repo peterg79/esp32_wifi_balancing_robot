@@ -4,7 +4,7 @@
  *  Created on: 23.02.2021
  *      Author: anonymous
  */
- 
+
 #include <Wire.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
@@ -25,12 +25,7 @@
 #include "driver/ledc.h"
 #include "esp32-hal-ledc.h"
 #include "secret.h"
-
-// re-generate with the following command:
-// sed -e 's,\",\\\",g' control.html | awk '{print "\""$0"\\n\""}' > control.txt
-const char* HTML =
-#include "control.txt"
-;
+#include "index.h"
 
 const char* PARAM_FADER1 = "fader1";
 const char* PARAM_FADER2 = "fader2";
@@ -50,7 +45,11 @@ String sta_password = WIFI_PASS;
 
 unsigned long previousMillis = 0;
 
+// TODO: https://randomnerdtutorials.com/esp32-websocket-server-arduino/
+// TODO: https://www.reddit.com/r/arduino/comments/znznkc/how_to_use_the_symbol_in_html_in_arduino_sketch/
+
 AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
 
 void initMPU6050() {
   MPU6050_setup();
@@ -64,6 +63,89 @@ void notFound(AsyncWebServerRequest *request) {
   request->send(404, "text/plain", "Not found");
 }
 
+bool ledState = 0;
+bool proMode = 0; // more aggressive control
+bool servoState = 0;
+unsigned int buzzerState = 0;
+
+void notifyClients() {
+  String r = "{\"light\":";
+  r += ledState?"true":"false";
+  r += ",";
+  r += "\"pro\":";
+  r += proMode?"true":"false";
+  r += "}";
+  ws.textAll(r);
+}
+
+void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
+  AwsFrameInfo *info = (AwsFrameInfo*)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+    data[len] = 0;
+    if (strcmp((char*)data, "status") == 0) {
+      notifyClients();
+    } else if (strcmp((char*)data, "toggle_light") == 0) {
+      ledState = !ledState;
+      notifyClients();
+    } else if (strcmp((char*)data, "start_servo") == 0) {
+      servoState = 1;
+    } else if (strcmp((char*)data, "stop_servo") == 0) {
+      servoState = 0;
+    } else if (strcmp((char*)data, "horn") == 0) {
+      if (buzzerState == 0) buzzerState = 1;
+    } else if (strcmp((char*)data, "toggle_pro") == 0) {
+      proMode = !proMode;
+      notifyClients();
+    }
+  }
+}
+
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
+ void *arg, uint8_t *data, size_t len) {
+  switch (type) {
+    case WS_EVT_CONNECT:
+      Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+      break;
+    case WS_EVT_DISCONNECT:
+      Serial.printf("WebSocket client #%u disconnected\n", client->id());
+      break;
+    case WS_EVT_DATA:
+      handleWebSocketMessage(arg, data, len);
+      break;
+    case WS_EVT_PONG:
+    case WS_EVT_ERROR:
+      break;
+  }
+}
+
+void initWebSocket() {
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+}
+
+String processor(const String& var) {
+  Serial.println(var);
+  if(var == "LIGHT_IS_ON") {
+    if (ledState){
+      return "checked";
+    } else {
+      return "";
+    }
+  } else if (var == "PRO_MODE") {
+    if (proMode){
+      return "checked";
+    } else {
+      return "";
+    }
+  } else if (var == "PRO_MODE_HTML") {
+    if (proMode){
+      return "&#128012;";
+    } else {
+      return "&#127939;";
+    }
+  }
+}
+
 void setup() {
   Serial.begin(115200);         // set up seriamonitor at 115200 bps
   Serial.setDebugOutput(true);
@@ -74,7 +156,7 @@ void setup() {
 
   pinMode(PIN_ENABLE_MOTORS, OUTPUT);
   digitalWrite(PIN_ENABLE_MOTORS, HIGH);
-  
+
   pinMode(PIN_MOTOR1_DIR, OUTPUT);
   pinMode(PIN_MOTOR1_STEP, OUTPUT);
   pinMode(PIN_MOTOR2_DIR, OUTPUT);
@@ -86,14 +168,14 @@ void setup() {
 
   pinMode(PIN_WIFI_LED, OUTPUT);
   digitalWrite(PIN_WIFI_LED, LOW);
-  
+
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
 
   ledcAttach(PIN_SERVO, 50, 16); // 50 Hz, 16-bit width
   delay(50);
   ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
-  
+
   Wire.begin();
   initMPU6050();
 
@@ -157,14 +239,14 @@ void setup() {
     delay(2000);
   }
 
-
+/*
   // Send a GET request to <ESP_IP>/?fader=<inputValue>
     server.on("/", HTTP_GET, [] (AsyncWebServerRequest *request) {
     String inputValue;
     String inputMessage;
     OSCnewMessage = 1;
     bool returnHtml = false;
-    
+
     // Get value for Forward/Backward
     if (request->hasParam(PARAM_FADER1)) {
       OSCpage = 1;
@@ -259,16 +341,27 @@ void setup() {
     }
     Serial.println(inputMessage+'='+inputValue);
     if (returnHtml) {
-      request->send(200, "text/html", HTML);
+      request->send(200, "text/html", index_html);
     } else {
       char rsp[256];
       sprintf(rsp, "{\"angle_adjusted\": %.2f}", angle_adjusted);
       request->send(200, "text/json", rsp);
     }
   });
+*/
+
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", index_html, processor);
+  });
+
+  server.on("/index.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/css", index_css);
+  });
 
   server.onNotFound (notFound);    // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
   server.begin();                           // actually start the server
+  initWebSocket();
+
 
   initTimers();
 
@@ -296,6 +389,81 @@ void setup() {
 
 void loop() {
   ArduinoOTA.handle();
+  static unsigned long pastMillis = millis();
+  unsigned long currentMillis = millis();
+  if (currentMillis - pastMillis > 5000) {
+    Serial.print("WebSocket cleanupClients\n");
+    ws.cleanupClients();
+    pastMillis = currentMillis;
+  }
+
+  if (ledState) digitalWrite(PIN_LED, HIGH);
+  else digitalWrite(PIN_LED, LOW);
+
+  if (MPU6050_newData()) {
+
+    MPU6050_read_3axis();
+
+    dt = (timer_value - timer_old) * 0.000001; // dt in seconds
+    //Serial.println(timer_value - timer_old);
+    timer_old = timer_value;
+
+    angle_adjusted_Old = angle_adjusted;
+    // Get new orientation angle from IMU (MPU6050)
+    float MPU_sensor_angle = MPU6050_getAngle(dt);
+    angle_adjusted = MPU_sensor_angle + angle_offset;
+    if ((MPU_sensor_angle > -15) && (MPU_sensor_angle < 15))
+      angle_adjusted_filtered = angle_adjusted_filtered * 0.99 + MPU_sensor_angle * 0.01;
+  }
+
+  if (servoState) {
+    if (angle_adjusted > -40)
+      ledcWrite(PIN_SERVO, SERVO_MAX_PULSEWIDTH);
+    else
+      ledcWrite(PIN_SERVO, SERVO_MIN_PULSEWIDTH);
+  } else
+    ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
+
+  static unsigned long buzzerStart = 0;
+  unsigned long buzzerNow = millis();
+  if (buzzerState == 1) {
+    buzzerStart = millis();
+    buzzerState = 2;
+  }
+  if (buzzerState == 2) {
+    if (buzzerNow < buzzerStart + 150) {
+      digitalWrite(PIN_BUZZER, HIGH);
+    } else {
+      buzzerState = 3;
+      buzzerStart = buzzerNow;
+    }
+  }
+
+  if (buzzerState == 3) {
+    if (buzzerNow < buzzerStart + 80) {
+      digitalWrite(PIN_BUZZER, LOW);
+    } else {
+      buzzerState = 4;
+      buzzerStart = buzzerNow;
+    }
+  }
+
+  if (buzzerState == 4) {
+    if (buzzerNow < buzzerStart + 150) {
+      digitalWrite(PIN_BUZZER, HIGH);
+    } else {
+      buzzerState = 5;
+      buzzerStart = buzzerNow;
+    }
+  }
+
+  if (buzzerState >= 5) {
+    digitalWrite(PIN_BUZZER, LOW);
+    buzzerState = 0;
+  }
+
+
+/*
 
   if (OSCnewMessage) {
     OSCnewMessage = 0;
@@ -305,9 +473,9 @@ void loop() {
   timer_value = micros();
 
   if (MPU6050_newData()) {
-    
+
     MPU6050_read_3axis();
-    
+
     dt = (timer_value - timer_old) * 0.000001; // dt in seconds
     //Serial.println(timer_value - timer_old);
     timer_old = timer_value;
@@ -390,7 +558,7 @@ void loop() {
       throttle = 0;
       steering = 0;
     }
-    
+
     // Push1 Move servo arm
     if (OSCpush[0]) {
       if (angle_adjusted > -40)
@@ -418,7 +586,7 @@ void loop() {
     }
 
   } // End of new IMU data
-
+*/
 }
 
 
