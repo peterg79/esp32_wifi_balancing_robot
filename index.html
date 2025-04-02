@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Esp32 Robot Remote</title>
+    <link rel="stylesheet" href="index.css" />
+    <script>
+      // buttons from https://www.toptal.com/designers/htmlarrows/arrows/
+
+      /*
+      alternative projects:
+        - https://www.instructables.com/Making-a-Joystick-With-HTML-pure-JavaScript/
+        - https://www.reddit.com/r/sveltejs/comments/w0gs0i/project_foss_turn_your_mobile_device_into_a/
+        - https://parvaiz.pk/posts/virtual-joystick-for-arduino/
+        - ! https://www.instructables.com/Making-a-Joystick-With-HTML-pure-JavaScript/
+      */
+
+      var gateway = `ws://${window.location.hostname}/ws`;
+      if (window.location.protocol.startsWith("file")) {
+        gateway = "ws://172.27.201.232/ws";
+      }
+      var websocket;
+
+      function initWebSocket() {
+        console.log("Trying to open a WebSocket connection...");
+        websocket = new WebSocket(gateway);
+        websocket.onopen = onOpen;
+        websocket.onclose = onClose;
+        websocket.onmessage = onMessage;
+      }
+
+      function onOpen(event) {
+        console.log("Connection opened");
+        websocket.send("status");
+      }
+
+      function onClose(event) {
+        console.log("Connection closed");
+        setTimeout(initWebSocket, 2000);
+      }
+
+      // https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications
+      function onMessage(event) {
+        log("received " + event.data);
+        const msg = JSON.parse(event.data);
+        // sample response:
+        // {"light": true, "pro": false}
+        for (var key in msg) {
+          value = msg[key];
+          log("processing '" + key + "': '" + value + "'");
+          switch (key) {
+            case "light":
+              document.getElementById("light").checked = value;
+              break;
+            case "pro":
+              document.getElementById("pro").checked = value;
+              if (value) {
+                labelContent = "&#128012;";
+                document.getElementById("prolabel").innerHTML = labelContent;
+                log("pro label changed to " + labelContent);
+              } else {
+                labelContent = "&#127939;";
+                document.getElementById("prolabel").innerHTML = labelContent;
+                log("pro label changed to " + labelContent);
+              }
+              break;
+          }
+        }
+      }
+
+      window.addEventListener("load", onLoad);
+
+      function onLoad(event) {
+        initWebSocket();
+        initLight();
+        initPro();
+        initServo();
+        initHorn();
+        initJoystick();
+      }
+
+      function initLight() {
+        document.getElementById("light").addEventListener("click", toggleLight);
+        log("light initialized.");
+      }
+
+      function toggleLight() {
+        log("toggle light");
+        websocket.send("toggle_light");
+      }
+
+      function initPro() {
+        document.getElementById("pro").addEventListener("click", togglePro);
+        log("pro initialized.");
+      }
+
+      function togglePro() {
+        log("toggle pro");
+        websocket.send("toggle_pro");
+      }
+
+      function log(msg) {
+        const container = document.getElementById("log");
+        container.textContent = `${msg} \n${container.textContent}`;
+      }
+
+      function stopServo(evt) {
+        evt.preventDefault();
+        log("stop servo");
+        websocket.send("stop_servo");
+      }
+
+      function startServo(evt) {
+        evt.preventDefault();
+        log("start servo");
+        websocket.send("start_servo");
+      }
+
+      function ignoreEvent(evt) {
+        evt.preventDefault();
+      }
+
+      function initServo() {
+        const servo = document.getElementById("servo");
+        servo.addEventListener("touchstart", startServo, { passive: false });
+        servo.addEventListener("touchend", stopServo, { passive: false });
+        servo.addEventListener("touchmove", ignoreEvent, { passive: false });
+        servo.addEventListener("touchcancel", ignoreEvent, { passive: false });
+        servo.addEventListener("mousedown", startServo, { passive: false });
+        servo.addEventListener("mouseup", stopServo, { passive: false });
+        log("servo initialized.");
+      }
+
+      function startHorn(evt) {
+        evt.preventDefault();
+        log("blow horn");
+        websocket.send("horn");
+      }
+
+      function initHorn() {
+        const horn = document.getElementById("horn");
+        horn.addEventListener("touchstart", startHorn, { passive: false });
+        horn.addEventListener("touchend", ignoreEvent, { passive: false });
+        horn.addEventListener("touchmove", ignoreEvent, { passive: false });
+        horn.addEventListener("touchcancel", ignoreEvent, { passive: false });
+        horn.addEventListener("mousedown", startHorn, { passive: false });
+        horn.addEventListener("mouseup", ignoreEvent, { passive: false });
+        log("horn initialized.");
+      }
+
+      function goUp(evt) {
+        evt.preventDefault();
+        log("go up");
+        websocket.send("up");
+      }
+      function stopUp(evt) {
+        evt.preventDefault();
+        log("stop up");
+        websocket.send("stop_up");
+      }
+
+      function goDown(evt) {
+        evt.preventDefault();
+        log("go down");
+        websocket.send("down");
+      }
+      function stopDown(evt) {
+        evt.preventDefault();
+        log("stop down");
+        websocket.send("stop_down");
+      }
+
+      function goLeft(evt) {
+        evt.preventDefault();
+        log("go left");
+        websocket.send("left");
+      }
+      function stopLeft(evt) {
+        evt.preventDefault();
+        log("stop left");
+        websocket.send("stop_left");
+      }
+
+      function goRight(evt) {
+        evt.preventDefault();
+        log("go right");
+        websocket.send("right");
+      }
+      function stopRight(evt) {
+        evt.preventDefault();
+        log("stop right");
+        websocket.send("stop_right");
+      }
+
+      function initJoystick() {
+        const up = document.getElementById("up");
+        const down = document.getElementById("down");
+        const left = document.getElementById("left");
+        const right = document.getElementById("right");
+
+        up.addEventListener("touchstart", goUp, { passive: false });
+        up.addEventListener("touchend", stopUp, { passive: false });
+        up.addEventListener("touchmove", ignoreEvent, { passive: false });
+        up.addEventListener("touchcancel", ignoreEvent, { passive: false });
+        up.addEventListener("mousedown", goUp, { passive: false });
+        up.addEventListener("mouseup", stopUp, { passive: false });
+
+        down.addEventListener("touchstart", goDown, { passive: false });
+        down.addEventListener("touchend", stopDown, { passive: false });
+        down.addEventListener("touchmove", ignoreEvent, { passive: false });
+        down.addEventListener("touchcancel", ignoreEvent, { passive: false });
+        down.addEventListener("mousedown", goDown, { passive: false });
+        down.addEventListener("mouseup", stopDown, { passive: false });
+
+        left.addEventListener("touchstart", goLeft, { passive: false });
+        left.addEventListener("touchend", stopLeft, { passive: false });
+        left.addEventListener("touchmove", ignoreEvent, { passive: false });
+        left.addEventListener("touchcancel", ignoreEvent, { passive: false });
+        left.addEventListener("mousedown", goLeft, { passive: false });
+        left.addEventListener("mouseup", stopLeft, { passive: false });
+
+        right.addEventListener("touchstart", goRight, { passive: false });
+        right.addEventListener("touchend", stopRight, { passive: false });
+        right.addEventListener("touchmove", ignoreEvent, { passive: false });
+        right.addEventListener("touchcancel", ignoreEvent, { passive: false });
+        right.addEventListener("mousedown", goRight, { passive: false });
+        right.addEventListener("mouseup", stopRight, { passive: false });
+
+        log("joystick initialized.");
+      }
+    </script>
+  </head>
+  <body>
+    <table class="tg">
+      <thead>
+        <tr>
+          <td>
+            <button id="up" class="button buttonUpDown">&uarr;</button><br />
+            <button id="down" class="button buttonUpDown">&darr;</button>
+          </td>
+          <td>
+            <button id="servo" class="button buttonServo">&orarr;</button>
+            <br />
+            <button id="horn" class="button buttonHorn">&#9836;</button>
+            <input type="checkbox" class="hidden" id="light" %LIGHT_IS_ON% />
+            <label for="light" class="button buttonLight">&#9967;</label>
+            <input type="checkbox" class="hidden" id="pro" %PRO_MODE% />
+            <label for="pro" id="prolabel" class="button buttonPro"
+              >%PRO_MODE_HTML%</label
+            >
+          </td>
+          <td>
+            <span style="white-space: nowrap">
+              <button id="left" class="button buttonLeftRight">&larr;</button>
+              <button id="right" class="button buttonLeftRight">&rarr;</button>
+            </span>
+          </td>
+        </tr>
+      </thead>
+    </table>
+    <pre id="log" style="border: 1px solid #ccc"></pre>
+  </body>
+</html>
