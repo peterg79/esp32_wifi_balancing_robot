@@ -2,11 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, user-scalable=no"
+    />
     <title>Esp32 Robot Remote</title>
     <link rel="stylesheet" href="index.css" />
     <script>
       // buttons from https://www.toptal.com/designers/htmlarrows/arrows/
+      // TODO slider from https://www.w3schools.com/howto/howto_js_rangeslider.asp
+      // or this: https://codepen.io/studiofurukawa/pen/mdVVWez
+      // or this: https://www.smashingmagazine.com/2021/12/create-custom-range-input-consistent-browsers/
 
       /*
       alternative projects:
@@ -15,6 +21,31 @@
         - https://parvaiz.pk/posts/virtual-joystick-for-arduino/
         - ! https://www.instructables.com/Making-a-Joystick-With-HTML-pure-JavaScript/
       */
+
+      /*
+Protocol messages:
+    {"status": 1}
+    response: {"light": true, "pro": false, "servo": false}
+
+    {"light": "toggle"}
+    response: {"light": true}
+
+    {"pro": "toggle"}
+    response: {"pro": false}
+
+    {"sensitivity": 71}
+    response: {"sensitivity": 71}
+    OR combine sensitivity to messages like this?
+    {"x":58,"y":-183,"speed":96,"angle":73,"sensitivity":71}  
+
+    {"servo": "start"}
+    {"servo": "stop"}
+    response: {"servo": true}
+
+    {"x":58,"y":-183,"speed":96,"angle":73}
+    response: {"ack": true}
+
+*/
 
       var gateway = `ws://${window.location.hostname}/ws`;
       if (window.location.protocol.startsWith("file")) {
@@ -92,6 +123,12 @@
 
       function initPro() {
         document.getElementById("pro").addEventListener("click", togglePro);
+        labelContent = "&#127939;";
+        if ("%PRO_MODE_HTML%" == "checked") {
+          labelContent = "&#128012;";
+        }
+        document.getElementById("prolabel").innerHTML = labelContent;
+        log("pro label changed to " + labelContent);
         log("pro initialized.");
       }
 
@@ -231,7 +268,15 @@
       }
     </script>
   </head>
-  <body>
+  <body
+    style="
+      position: fixed;
+      font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS',
+        sans-serif;
+      color: rgb(128, 128, 128);
+      font-size: xx-large;
+    "
+  >
     <table class="tg">
       <thead>
         <tr>
@@ -246,9 +291,16 @@
             <input type="checkbox" class="hidden" id="light" %LIGHT_IS_ON% />
             <label for="light" class="button buttonLight">&#9967;</label>
             <input type="checkbox" class="hidden" id="pro" %PRO_MODE% />
-            <label for="pro" id="prolabel" class="button buttonPro"
-              >%PRO_MODE_HTML%</label
+            <label for="pro" id="prolabel" class="hidden button buttonPro"
+              >&#127939;</label
             >
+            &#128012;<input
+              type="range"
+              min="0"
+              value="50"
+              max="100"
+              step="1"
+            />&#127939;
           </td>
           <td>
             <span style="white-space: nowrap">
