@@ -3,6 +3,13 @@
  *
  *  Created on: 23.02.2021
  *      Author: anonymous
+ * Prerequisities:
+ *  - install esp32 boards according to https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
+ *     - Enter the following into the "Additional Board Manager URLs" field: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+ *     - in board manager, install "ESP32 by Espressif Systems"
+ *  - select "DOIT ESP32 DEVKIT V1"
+ *  - install "Async TCP by ESP32 Async"
+ *  - install "ESP Async WebServer by ESP32 Async"
  */
 
 #include <Wire.h>
