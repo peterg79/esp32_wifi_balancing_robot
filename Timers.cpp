@@ -13,8 +13,7 @@
 #include "freertos/queue.h"
 #include "esp_types.h"
 #include "soc/timer_group_struct.h"
-#include "driver/periph_ctrl.h"
-#include "driver/timer.h"
+#include "driver/gptimer.h"
 #include "esp32-hal-timer.h"
 
 extern "C" {

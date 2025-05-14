@@ -27,8 +27,7 @@
 #include <stdio.h>
 #include "esp_types.h"
 #include "soc/timer_group_struct.h"
-#include "driver/periph_ctrl.h"
-#include "driver/timer.h"
+#include "driver/gptimer.h"
 #include "driver/ledc.h"
 #include "esp32-hal-ledc.h"
 #include "secret.h"
@@ -54,6 +53,8 @@ unsigned long previousMillis = 0;
 
 // TODO: https://randomnerdtutorials.com/esp32-websocket-server-arduino/
 // TODO: https://www.reddit.com/r/arduino/comments/znznkc/how_to_use_the_symbol_in_html_in_arduino_sketch/
+// TODO: https://github.com/ElectronicCats/mpu6050
+
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -151,6 +152,7 @@ String processor(const String& var) {
       return "&#127939;";
     }
   }
+  return "";
 }
 
 void setup() {
@@ -358,7 +360,7 @@ void setup() {
 */
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send_P(200, "text/html", index_html, processor);
+    request->send(200, "text/html", index_html, processor);
   });
 
   server.on("/index.css", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -389,6 +391,8 @@ void setup() {
     ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO - 250);
     delay(200);
   }
+  setMotorSpeedM1(0);
+  setMotorSpeedM2(0);
   ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
 
   ArduinoOTA.begin();   // enable to receive update/upload firmware via Wifi OTA
