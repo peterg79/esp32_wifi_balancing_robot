@@ -172,8 +172,8 @@
           var x_relative = Math.round(x - x_orig);
           var y_relative = Math.round(y - y_orig);
 
-          document.getElementById("x_coordinate").innerText = x_relative;
-          document.getElementById("y_coordinate").innerText = y_relative;
+          document.getElementById("x_coordinate").innerText = Math.round(x_relative/radius*100);
+          document.getElementById("y_coordinate").innerText = Math.round(y_relative/radius*100);
           document.getElementById("speed").innerText = speed;
           document.getElementById("angle").innerText = angle_in_degrees;
 
