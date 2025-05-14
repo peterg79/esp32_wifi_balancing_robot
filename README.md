@@ -15,3 +15,21 @@ Then you're ready to compile and upload the firmware.
 TODO:
 - https://ai.thestempedia.com/docs/dabble-app/gamepad-module/
 - https://remotexy.com/en/examples/
+
+
+## Communication protocol
+  input messages:
+    - {"verbose": 0|1} : default 0. if 0, only necessary status is communicated. Otherwise, debug info too.
+    - {"buzzer": true|false} : default false. Sounds buzzer.
+    - {"light": true|false} : default no change. Switch light on.
+    - {"servo": true|false} : default no change. Switch servo on.
+    //- {"speed":0-100,"angle":0-359} : default no change. move motors to direction. not yet implemented.
+    - {"x":-100 - 100,"y":-100 - 100} : default no change. move motors to direction.
+    example:
+      {"verbose": 1, "light": true, "servo": true, "x": 75,"y": 0}
+  output messages:
+    - {"buzzer": true|false}
+    - {"light": true|false}
+    - {"servo": true|false}
+    - {"angle": -180.0 - 180.0}
+    - {"debug": {"angle_adjusted": 91.1, "angle_adjusted_filtered": 1.01}}
