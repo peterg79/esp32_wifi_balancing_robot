@@ -4,13 +4,15 @@
  *  Created on: 23.02.2021
  *      Author: anonymous
  */
- 
+
 #include <Wire.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
 #include <Arduino.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <FS.h>
+#include <LittleFS.h>
 #include "Control.h"
 #include "MPU6050.h"
 #include "Motors.h"
@@ -25,11 +27,7 @@
 #include "esp32-hal-ledc.h"
 #include "secret.h"
 
-// re-generate with the following command:
-// sed -e 's,\",\\\",g' control.html | awk '{print "\""$0"\\n\""}' > control.txt
-const char* HTML =
-#include "htmlcontrol.h"
-;
+#define FORMAT_LITTLEFS_IF_FAILED false
 
 const char* PARAM_FADER1 = "fader1";
 const char* PARAM_FADER2 = "fader2";
@@ -147,6 +145,9 @@ void setup() {
     delay(2000);
   }
 
+  if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
+    Serial.println("LittleFS Mount Failed");
+  }
 
   // Send a GET request to <ESP_IP>/?fader=<inputValue>
     server.on("/", HTTP_GET, [] (AsyncWebServerRequest *request) {
@@ -249,12 +250,16 @@ void setup() {
     }
     Serial.println(inputMessage+'='+inputValue);
     if (returnHtml) {
-      request->send(200, "text/html", HTML);
+      request->send(LittleFS, "/index.html", String(), false);
     } else {
       char rsp[256];
       sprintf(rsp, "{\"angle_adjusted\": %.2f}", angle_adjusted);
       request->send(200, "text/json", rsp);
     }
+  });
+
+  server.on("/index.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/index.css", String(), false);
   });
 
   server.onNotFound (notFound);    // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>Esp32 Robot Remote</title>
+  <link rel="stylesheet" href="index.css" />
+  <script>
+    // buttons from https://www.toptal.com/designers/htmlarrows/arrows/
+
+    //Non jQuery AJAX Lib (0.4 kb) to avoid using an iframe and make it easier to read the server response...
+    function microAjax(B, A) {
+      this.bindFunction = function (E, D) {
+        return function () {
+          return E.apply(D, [D]);
+        };
+      };
+      this.stateChange = function (D) {
+        if (this.request.readyState == 4) {
+          this.callbackFunction(this.request.responseText);
+        }
+      };
+      this.getRequest = function () {
+        if (window.ActiveXObject) {
+          return new ActiveXObject("Microsoft.XMLHTTP");
+        } else {
+          if (window.XMLHttpRequest) {
+            return new XMLHttpRequest();
+          }
+        }
+        return false;
+      };
+      this.postBody = arguments[2] || "";
+      this.callbackFunction = A;
+      this.url = B;
+      this.request = this.getRequest();
+      if (this.request) {
+        var C = this.request;
+        C.onreadystatechange = this.bindFunction(this.stateChange, this);
+        if (this.postBody !== "") {
+          C.open("POST", B, true);
+          C.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+          C.setRequestHeader(
+            "Content-type",
+            "application/x-www-form-urlencoded"
+          );
+          C.setRequestHeader("Connection", "close");
+        } else {
+          C.open("GET", B, true);
+        }
+        C.send(this.postBody);
+      }
+    }
+
+    window.addEventListener("load", onLoad);
+
+    function onLoad(event) {
+      initLight();
+      //initPro();
+      initServo();
+      initHorn();
+      initJoystick();
+    }
+
+    //var URL='http://172.27.201.232/'; //Or whatever IP
+    var URL =
+      window.location.protocol + "//" + window.location.hostname + "/";
+    if (window.location.protocol.startsWith("file")) {
+      URL = "http://172.27.201.232/";
+    }
+
+    function commandResponse(data) {
+      //Get a command response from the robot code.
+    }
+
+    function readState(data) {
+      //Polling function to read your robot's state (position, moving, etc)...
+    }
+
+    function readCam(data) {
+      //decode image data and show it somewhere on the html
+    }
+
+    function command(dir) {
+      microAjax(URL + "?" + dir, commandResponse);
+      log("Command: " + URL + "?" + dir);
+    }
+
+    /*
+    setInterval(function () {
+      microAjax(URL + "currentState", readState);
+    }, 500);
+
+    setInterval(function () {
+      microAjax(URL + "cam", readCam);
+    }, 500);
+    */
+    function initLight() {
+      const light = document.getElementById("light");
+      light.addEventListener("click", toggleLight);
+      light.addEventListener("touchmove", ignoreEvent, { passive: false });
+      light.addEventListener("touchcancel", ignoreEvent, { passive: false });
+
+
+      log("light initialized.");
+    }
+    function toggleLight(checkbox) {
+      if (document.getElementById("light").checked) {
+        command("push4=1");
+        log("Light on.");
+      } else {
+        command("push4=0");
+        log("Light off.");
+      }
+    }
+
+    function log(msg) {
+      const container = document.getElementById("log");
+      container.textContent = `${msg} \n${container.textContent}`;
+    }
+
+    function ignoreEvent(evt) {
+      evt.preventDefault();
+    }
+
+    function stopServo(evt) {
+      evt.preventDefault();
+      log("stop servo");
+      command("push1=0");
+    }
+
+    function startServo(evt) {
+      evt.preventDefault();
+      log("start servo");
+      command("push1=1");
+    }
+
+    function initServo() {
+      const servo = document.getElementById("servo");
+      servo.addEventListener("touchstart", startServo, { passive: false });
+      servo.addEventListener("touchend", stopServo, { passive: false });
+      servo.addEventListener("touchmove", ignoreEvent, { passive: false });
+      servo.addEventListener("touchcancel", ignoreEvent, { passive: false });
+      servo.addEventListener("mousedown", startServo, { passive: false });
+      servo.addEventListener("mouseup", stopServo, { passive: false });
+      log("servo initialized.");
+    }
+
+    function startHorn(evt) {
+      evt.preventDefault();
+      log("blow horn");
+      ommand("push3=1");
+    }
+
+    function initHorn() {
+      const horn = document.getElementById("horn");
+      horn.addEventListener("touchstart", startHorn, { passive: false });
+      horn.addEventListener("touchend", ignoreEvent, { passive: false });
+      horn.addEventListener("touchmove", ignoreEvent, { passive: false });
+      horn.addEventListener("touchcancel", ignoreEvent, { passive: false });
+      horn.addEventListener("mousedown", startHorn, { passive: false });
+      horn.addEventListener("mouseup", ignoreEvent, { passive: false });
+      log("horn initialized.");
+    }
+
+    function goUp(evt) {
+      evt.preventDefault();
+      log("go up");
+      command("fader1=1.00");
+    }
+
+    function stopUp(evt) {
+      evt.preventDefault();
+      log("stop up");
+      command("fader1=0.50");
+    }
+
+    function goDown(evt) {
+      evt.preventDefault();
+      log("go down");
+      command("fader1=0.00");
+    }
+
+    function stopDown(evt) {
+      evt.preventDefault();
+      log("stop down");
+      command("fader1=0.50");
+    }
+
+    function goLeft(evt) {
+      evt.preventDefault();
+      log("go left");
+      command("fader2=1.00");
+    }
+
+    function stopLeft(evt) {
+      evt.preventDefault();
+      log("stop left");
+      command("fader2=0.50");
+    }
+
+    function goRight(evt) {
+      evt.preventDefault();
+      log("go right");
+      command("fader2=0.00");
+    }
+
+    function stopRight(evt) {
+      evt.preventDefault();
+      log("stop right");
+      command("fader2=0.50");
+    }
+
+    function initJoystick() {
+      const up = document.getElementById("up");
+      const down = document.getElementById("down");
+      const left = document.getElementById("left");
+      const right = document.getElementById("right");
+
+      up.addEventListener("touchstart", goUp, { passive: false });
+      up.addEventListener("touchend", stopUp, { passive: false });
+      up.addEventListener("touchmove", ignoreEvent, { passive: false });
+      up.addEventListener("touchcancel", ignoreEvent, { passive: false });
+      up.addEventListener("mousedown", goUp, { passive: false });
+      up.addEventListener("mouseup", stopUp, { passive: false });
+
+      down.addEventListener("touchstart", goDown, { passive: false });
+      down.addEventListener("touchend", stopDown, { passive: false });
+      down.addEventListener("touchmove", ignoreEvent, { passive: false });
+      down.addEventListener("touchcancel", ignoreEvent, { passive: false });
+      down.addEventListener("mousedown", goDown, { passive: false });
+      down.addEventListener("mouseup", stopDown, { passive: false });
+
+      left.addEventListener("touchstart", goLeft, { passive: false });
+      left.addEventListener("touchend", stopLeft, { passive: false });
+      left.addEventListener("touchmove", ignoreEvent, { passive: false });
+      left.addEventListener("touchcancel", ignoreEvent, { passive: false });
+      left.addEventListener("mousedown", goLeft, { passive: false });
+      left.addEventListener("mouseup", stopLeft, { passive: false });
+
+      right.addEventListener("touchstart", goRight, { passive: false });
+      right.addEventListener("touchend", stopRight, { passive: false });
+      right.addEventListener("touchmove", ignoreEvent, { passive: false });
+      right.addEventListener("touchcancel", ignoreEvent, { passive: false });
+      right.addEventListener("mousedown", goRight, { passive: false });
+      right.addEventListener("mouseup", stopRight, { passive: false });
+
+      log("joystick initialized.");
+    }
+  </script>
+</head>
+
+<body>
+  <table class="tg">
+    <thead>
+      <tr>
+        <td>
+          <button id="up" class="button buttonUpDown">&uarr;</button><br />
+          <button id="down" class="button buttonUpDown">&darr;</button>
+        </td>
+        <td>
+          <button id="servo" class="button buttonServo">&orarr;</button>
+          <br />
+          <button id="horn" class="button buttonHorn">&#9836;</button>
+          <input type="checkbox" class="hidden" id="light" />
+          <label for="light" class="button buttonLight">&#9967;</label>
+        </td>
+        <td>
+          <span style="white-space: nowrap">
+            <button id="left" class="button buttonLeftRight">&larr;</button>
+            <button id="right" class="button buttonLeftRight">&rarr;</button>
+          </span>
+        </td>
+      </tr>
+    </thead>
+  </table>
+  <pre id="log" style="border: 1px solid #ccc"></pre>
+</body>
+
+</html>
