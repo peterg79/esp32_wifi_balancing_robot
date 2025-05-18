@@ -27,7 +27,7 @@
 #include "esp32-hal-ledc.h"
 #include "secret.h"
 
-#define FORMAT_LITTLEFS_IF_FAILED false
+#define FORMAT_LITTLEFS_IF_FAILED true
 
 const char* PARAM_FADER1 = "fader1";
 const char* PARAM_FADER2 = "fader2";
@@ -57,8 +57,89 @@ void initMPU6050() {
 
 void initTimers();
 
+// Make size of files human readable
+// source: https://github.com/CelliesProjects/minimalUploadAuthESP32
+String humanReadableSize(const size_t bytes) {
+  if (bytes < 1024) return String(bytes) + " B";
+  else if (bytes < (1024 * 1024)) return String(bytes / 1024.0) + " KB";
+  else if (bytes < (1024 * 1024 * 1024)) return String(bytes / 1024.0 / 1024.0) + " MB";
+  else return String(bytes / 1024.0 / 1024.0 / 1024.0) + " GB";
+}
+
+// list all of the files, if ishtml=true, return html rather than simple text
+String listFiles(bool ishtml) {
+  String returnText = "";
+  Serial.println("Listing files stored on SPIFFS");
+  File root = LittleFS.open("/");
+  File foundfile = root.openNextFile();
+  if (ishtml) {
+    returnText += "<table><tr><th align='left'>Name</th><th align='left'>Size</th></tr>";
+  }
+  while (foundfile) {
+    if (ishtml) {
+      returnText += "<tr align='left'><td>" + String(foundfile.name()) + "</td><td>" + humanReadableSize(foundfile.size()) + "</td></tr>";
+    } else {
+      returnText += "File: " + String(foundfile.name()) + "\n";
+    }
+    foundfile = root.openNextFile();
+  }
+  if (ishtml) {
+    returnText += "</table>";
+  }
+  root.close();
+  foundfile.close();
+  return returnText;
+}
+
+String processor(const String& var) {
+  if (var == "FILELIST") {
+    return listFiles(true);
+  }
+  if (var == "FREEFS") {
+    return humanReadableSize((LittleFS.totalBytes() - LittleFS.usedBytes()));
+  }
+
+  if (var == "USEDFS") {
+    return humanReadableSize(LittleFS.usedBytes());
+  }
+
+  if (var == "TOTALFS") {
+    return humanReadableSize(LittleFS.totalBytes());
+  }
+
+  return String();
+}
+
 void notFound(AsyncWebServerRequest* request) {
   request->send(404, "text/plain", "Not found");
+}
+
+// handles uploads
+void handleUpload(AsyncWebServerRequest* request, String filename, size_t index, uint8_t* data, size_t len, bool final) {
+  String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+  Serial.println(logmessage);
+
+  if (!index) {
+    logmessage = "Upload Start: " + String(filename);
+    // open the file on first call and store the file handle in the request object
+    request->_tempFile = LittleFS.open("/" + filename, "w");
+    Serial.println(logmessage);
+  }
+
+  if (len) {
+    // stream the incoming chunk to the opened file
+    request->_tempFile.write(data, len);
+    logmessage = "Writing file: " + String(filename) + " index=" + String(index) + " len=" + String(len);
+    Serial.println(logmessage);
+  }
+
+  if (final) {
+    logmessage = "Upload Complete: " + String(filename) + ",size: " + String(index + len);
+    // close the file handle as the upload is now done
+    request->_tempFile.close();
+    Serial.println(logmessage);
+    request->redirect("/");
+  }
 }
 
 void setup() {
@@ -260,6 +341,16 @@ void setup() {
   server.on("/index.css", HTTP_GET, [](AsyncWebServerRequest* request) {
     request->send(LittleFS, "/index.css", String(), false);
   });
+
+  server.on("/upload.html", HTTP_GET, [](AsyncWebServerRequest* request) {
+    request->send(LittleFS, "/upload.html", String(), false, processor);
+  });
+
+  server.on(
+    "/upload", HTTP_POST, [](AsyncWebServerRequest* request) {
+      request->send(200);
+    },
+    handleUpload);
 
   server.onNotFound(notFound);  // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
   server.begin();               // actually start the server
