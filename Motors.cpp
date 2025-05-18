@@ -11,8 +11,7 @@
 
 // Set speed of Stepper Motor1
 // tspeed could be positive or negative (reverse)
-void setMotorSpeedM1(int16_t tspeed)
-{
+void setMotorSpeedM1(int16_t tspeed) {
   long timer_period;
   int16_t speed;
 
@@ -26,30 +25,25 @@ void setMotorSpeedM1(int16_t tspeed)
   else
     speed_M1 = tspeed;
 
-#if MICROSTEPPING==16
-  speed = speed_M1 * 50; // Adjust factor from control output speed to real motor speed in steps/second
+#if MICROSTEPPING == 16
+  speed = speed_M1 * 50;  // Adjust factor from control output speed to real motor speed in steps/second
 #else
-  speed = speed_M1 * 25; // 1/8 Microstepping
+  speed = speed_M1 * 25;  // 1/8 Microstepping
 #endif
 
-  if (speed == 0)
-  {
+  if (speed == 0) {
     timer_period = ZERO_SPEED;
     dir_M1 = 0;
-  }
-  else if (speed > 0)
-  {
-    timer_period = 2000000 / speed; // 2Mhz timer
+  } else if (speed > 0) {
+    timer_period = 2000000 / speed;  // 2Mhz timer
     dir_M1 = 1;
     digitalWrite(PIN_MOTOR1_DIR, HIGH);
-  }
-  else
-  {
+  } else {
     timer_period = 2000000 / -speed;
     dir_M1 = -1;
     digitalWrite(PIN_MOTOR1_DIR, LOW);
   }
-  if (timer_period > ZERO_SPEED)   // Check for minimun speed (maximun period without overflow)
+  if (timer_period > ZERO_SPEED)  // Check for minimun speed (maximun period without overflow)
     timer_period = ZERO_SPEED;
 
   timerAlarm(timer1, timer_period, true, 0);
@@ -57,8 +51,7 @@ void setMotorSpeedM1(int16_t tspeed)
 
 // Set speed of Stepper Motor2
 // tspeed could be positive or negative (reverse)
-void setMotorSpeedM2(int16_t tspeed)
-{
+void setMotorSpeedM2(int16_t tspeed) {
   long timer_period;
   int16_t speed;
 
@@ -72,32 +65,26 @@ void setMotorSpeedM2(int16_t tspeed)
   else
     speed_M2 = tspeed;
 
-#if MICROSTEPPING==16
-  speed = speed_M2 * 50; // Adjust factor from control output speed to real motor speed in steps/second
+#if MICROSTEPPING == 16
+  speed = speed_M2 * 50;  // Adjust factor from control output speed to real motor speed in steps/second
 #else
-  speed = speed_M2 * 25; // 1/8 Microstepping
+  speed = speed_M2 * 25;  // 1/8 Microstepping
 #endif
 
-  if (speed == 0)
-  {
+  if (speed == 0) {
     timer_period = ZERO_SPEED;
     dir_M2 = 0;
-  }
-  else if (speed > 0)
-  {
-    timer_period = 2000000 / speed; // 2Mhz timer
+  } else if (speed > 0) {
+    timer_period = 2000000 / speed;  // 2Mhz timer
     dir_M2 = 1;
     digitalWrite(PIN_MOTOR2_DIR, LOW);
-  }
-  else
-  {
+  } else {
     timer_period = 2000000 / -speed;
     dir_M2 = -1;
     digitalWrite(PIN_MOTOR2_DIR, HIGH);
   }
-  if (timer_period > ZERO_SPEED)   // Check for minimun speed (maximun period without overflow)
+  if (timer_period > ZERO_SPEED)  // Check for minimun speed (maximun period without overflow)
     timer_period = ZERO_SPEED;
 
   timerAlarm(timer2, timer_period, true, 0);
 }
-
