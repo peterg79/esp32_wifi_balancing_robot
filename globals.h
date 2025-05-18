@@ -13,15 +13,15 @@
 
 extern volatile long counter1;
 extern volatile long counter2;
-extern hw_timer_t * timer1;
-extern hw_timer_t * timer2;
+extern hw_timer_t* timer1;
+extern hw_timer_t* timer2;
 
 extern String MAC;  // MAC address of Wifi module
 
 extern uint8_t cascade_control_loop_counter;
-extern uint8_t loop_counter;       // To generate a medium loop 40Hz
-extern uint8_t slow_loop_counter;  // slow loop 2Hz
-extern uint8_t sendBattery_counter; // To send battery status
+extern uint8_t loop_counter;         // To generate a medium loop 40Hz
+extern uint8_t slow_loop_counter;    // slow loop 2Hz
+extern uint8_t sendBattery_counter;  // To send battery status
 extern int16_t BatteryValue;
 
 extern long timer_old;
@@ -76,11 +76,11 @@ extern int32_t target_steps2;
 extern int16_t motor1_control;
 extern int16_t motor2_control;
 
-extern int16_t speed_M1, speed_M2;        // Actual speed of motors
-extern int8_t  dir_M1, dir_M2;            // Actual direction of steppers motors
-extern int16_t actual_robot_speed;        // overall robot speed (measured from steppers speed)
+extern int16_t speed_M1, speed_M2;  // Actual speed of motors
+extern int8_t dir_M1, dir_M2;       // Actual direction of steppers motors
+extern int16_t actual_robot_speed;  // overall robot speed (measured from steppers speed)
 extern int16_t actual_robot_speed_Old;
-extern float estimated_speed_filtered;    // Estimated robot speed
+extern float estimated_speed_filtered;  // Estimated robot speed
 
 // OSC output variables
 extern uint8_t OSCpage;

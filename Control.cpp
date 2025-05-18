@@ -10,8 +10,7 @@
 #include "globals.h"
 
 // PD controller implementation(Proportional, derivative). DT in seconds
-float stabilityPDControl(float DT, float input, float setPoint,  float Kp, float Kd)
-{
+float stabilityPDControl(float DT, float input, float setPoint, float Kp, float Kd) {
   float error;
   float output;
 
@@ -20,7 +19,7 @@ float stabilityPDControl(float DT, float input, float setPoint,  float Kp, float
   // Kd is implemented in two parts
   //    The biggest one using only the input (sensor) part not the SetPoint input-input(t-1).
   //    And the second using the setpoint to make it a bit more agressive   setPoint-setPoint(t-1)
-  float Kd_setPoint = constrain((setPoint - setPointOld), -8, 8); // We limit the input part...
+  float Kd_setPoint = constrain((setPoint - setPointOld), -8, 8);  // We limit the input part...
   output = Kp * error + (Kd * Kd_setPoint - Kd * (input - PID_errorOld)) / DT;
   //Serial.print(Kd*(error-PID_errorOld));Serial.print("\t");
   //PID_errorOld2 = PID_errorOld;
@@ -31,8 +30,7 @@ float stabilityPDControl(float DT, float input, float setPoint,  float Kp, float
 
 
 // PI controller implementation (Proportional, integral). DT in seconds
-float speedPIControl(float DT, int16_t input, int16_t setPoint,  float Kp, float Ki)
-{
+float speedPIControl(float DT, int16_t input, int16_t setPoint, float Kp, float Ki) {
   int16_t error;
   float output;
 
@@ -42,18 +40,16 @@ float speedPIControl(float DT, int16_t input, int16_t setPoint,  float Kp, float
 
   //Serial.println(PID_errorSum);
 
-  output = Kp * error + Ki * PID_errorSum * DT; // DT is in miliseconds...
+  output = Kp * error + Ki * PID_errorSum * DT;  // DT is in miliseconds...
   return (output);
 }
 
 
-float positionPDControl(long actualPos, long setPointPos, float Kpp, float Kdp, int16_t speedM)
-{
+float positionPDControl(long actualPos, long setPointPos, float Kpp, float Kdp, int16_t speedM) {
   float output;
   float P;
 
-  P = constrain(Kpp * float(setPointPos - actualPos), -115, 115); // Limit command
+  P = constrain(Kpp * float(setPointPos - actualPos), -115, 115);  // Limit command
   output = P + Kdp * float(speedM);
   return (output);
 }
-

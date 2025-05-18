@@ -57,12 +57,12 @@ void initMPU6050() {
 
 void initTimers();
 
-void notFound(AsyncWebServerRequest *request) {
+void notFound(AsyncWebServerRequest* request) {
   request->send(404, "text/plain", "Not found");
 }
 
 void setup() {
-  Serial.begin(115200);         // set up seriamonitor at 115200 bps
+  Serial.begin(115200);  // set up seriamonitor at 115200 bps
   Serial.setDebugOutput(true);
   Serial.println();
   Serial.println("*ESP32 Camera Balancing Robot*");
@@ -71,7 +71,7 @@ void setup() {
 
   pinMode(PIN_ENABLE_MOTORS, OUTPUT);
   digitalWrite(PIN_ENABLE_MOTORS, HIGH);
-  
+
   pinMode(PIN_MOTOR1_DIR, OUTPUT);
   pinMode(PIN_MOTOR1_STEP, OUTPUT);
   pinMode(PIN_MOTOR2_DIR, OUTPUT);
@@ -83,24 +83,24 @@ void setup() {
 
   pinMode(PIN_WIFI_LED, OUTPUT);
   digitalWrite(PIN_WIFI_LED, LOW);
-  
+
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
 
-  ledcAttach(PIN_SERVO, 50, 16); // 50 Hz, 16-bit width
+  ledcAttach(PIN_SERVO, 50, 16);  // 50 Hz, 16-bit width
   delay(50);
   ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
-  
+
   Wire.begin();
   initMPU6050();
 
   // Set NodeMCU Wifi hostname based on chip mac address
   char chip_id[15];
-  snprintf(chip_id, 15, "%04X", (uint16_t)(ESP.getEfuseMac()>>32));
+  snprintf(chip_id, 15, "%04X", (uint16_t)(ESP.getEfuseMac() >> 32));
   String hostname = "esp32brobot-" + String(chip_id);
 
   Serial.println();
-  Serial.println("Hostname: "+hostname);
+  Serial.println("Hostname: " + hostname);
 
   // first, set NodeMCU as STA mode to connect with a Wifi network
   WiFi.mode(WIFI_STA);
@@ -127,9 +127,9 @@ void setup() {
     Serial.println("");
     Serial.println("*WiFi-STA-Mode*");
     Serial.print("IP: ");
-    myIP=WiFi.localIP();
+    myIP = WiFi.localIP();
     Serial.println(myIP);
-    digitalWrite(PIN_WIFI_LED, HIGH);    // Wifi LED on when connected to Wifi as STA mode
+    digitalWrite(PIN_WIFI_LED, HIGH);  // Wifi LED on when connected to Wifi as STA mode
     delay(2000);
   } else {
     WiFi.mode(WIFI_AP);
@@ -141,7 +141,7 @@ void setup() {
     Serial.println("*WiFi-AP-Mode*");
     Serial.print("AP IP address: ");
     Serial.println(myIP);
-    digitalWrite(PIN_WIFI_LED, LOW);   // Wifi LED off when status as AP mode
+    digitalWrite(PIN_WIFI_LED, LOW);  // Wifi LED off when status as AP mode
     delay(2000);
   }
 
@@ -150,12 +150,12 @@ void setup() {
   }
 
   // Send a GET request to <ESP_IP>/?fader=<inputValue>
-    server.on("/", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
     String inputValue;
     String inputMessage;
     OSCnewMessage = 1;
     bool returnHtml = false;
-    
+
     // Get value for Forward/Backward
     if (request->hasParam(PARAM_FADER1)) {
       OSCpage = 1;
@@ -175,22 +175,22 @@ void setup() {
       OSCpage = 1;
       inputValue = request->getParam(PARAM_PUSH1)->value();
       inputMessage = PARAM_PUSH1;
-      if(inputValue.equals("1")) OSCpush[0]=1;
-      else OSCpush[0]=0;
+      if (inputValue.equals("1")) OSCpush[0] = 1;
+      else OSCpush[0] = 0;
     }
     // Get value for Setting
     else if (request->hasParam(PARAM_PUSH2)) {
       OSCpage = 2;
       inputValue = request->getParam(PARAM_PUSH2)->value();
       inputMessage = PARAM_PUSH2;
-      if(inputValue.equals("1")) OSCpush[2]=1;
-      else OSCpush[2]=0;
+      if (inputValue.equals("1")) OSCpush[2] = 1;
+      else OSCpush[2] = 0;
     }
     // Get value for Buzzer
     else if (request->hasParam(PARAM_PUSH3)) {
       inputValue = request->getParam(PARAM_PUSH3)->value();
       inputMessage = PARAM_PUSH3;
-      if(inputValue.equals("1")) {
+      if (inputValue.equals("1")) {
         digitalWrite(PIN_BUZZER, HIGH);
         delay(150);
         digitalWrite(PIN_BUZZER, LOW);
@@ -205,7 +205,7 @@ void setup() {
     else if (request->hasParam(PARAM_PUSH4)) {
       inputValue = request->getParam(PARAM_PUSH4)->value();
       inputMessage = PARAM_PUSH4;
-      if(inputValue.equals("1")) digitalWrite(PIN_LED, HIGH);
+      if (inputValue.equals("1")) digitalWrite(PIN_LED, HIGH);
       else digitalWrite(PIN_LED, LOW);
     }
     // Get value for mode PRO
@@ -213,8 +213,8 @@ void setup() {
       OSCpage = 1;
       inputValue = request->getParam(PARAM_TOGGLE1)->value();
       inputMessage = PARAM_TOGGLE1;
-      if(inputValue.equals("1")) OSCtoggle[0]=1;
-      else OSCtoggle[0]=0;
+      if (inputValue.equals("1")) OSCtoggle[0] = 1;
+      else OSCtoggle[0] = 0;
     }
     // Get value for P-Stability
     else if (request->hasParam(PARAM_FADER3)) {
@@ -243,12 +243,11 @@ void setup() {
       inputValue = request->getParam(PARAM_FADER6)->value();
       inputMessage = PARAM_FADER6;
       OSCfader[0] = inputValue.toFloat();
-    }
-    else {
+    } else {
       inputValue = "No message sent";
       returnHtml = true;
     }
-    Serial.println(inputMessage+'='+inputValue);
+    Serial.println(inputMessage + '=' + inputValue);
     if (returnHtml) {
       request->send(LittleFS, "/index.html", String(), false);
     } else {
@@ -258,12 +257,12 @@ void setup() {
     }
   });
 
-  server.on("/index.css", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/index.css", HTTP_GET, [](AsyncWebServerRequest* request) {
     request->send(LittleFS, "/index.css", String(), false);
   });
 
-  server.onNotFound (notFound);    // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
-  server.begin();                           // actually start the server
+  server.onNotFound(notFound);  // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
+  server.begin();               // actually start the server
 
   initTimers();
 
@@ -286,7 +285,7 @@ void setup() {
   }
   ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
 
-  ArduinoOTA.begin();   // enable to receive update/upload firmware via Wifi OTA
+  ArduinoOTA.begin();  // enable to receive update/upload firmware via Wifi OTA
 }
 
 void loop() {
@@ -300,10 +299,10 @@ void loop() {
   timer_value = micros();
 
   if (MPU6050_newData()) {
-    
+
     MPU6050_read_3axis();
-    
-    dt = (timer_value - timer_old) * 0.000001; // dt in seconds
+
+    dt = (timer_value - timer_old) * 0.000001;  // dt in seconds
     //Serial.println(timer_value - timer_old);
     timer_old = timer_value;
 
@@ -317,11 +316,11 @@ void loop() {
 
     // We calculate the estimated robot speed:
     // Estimated_Speed = angular_velocity_of_stepper_motors(combined) - angular_velocity_of_robot(angle measured by IMU)
-    actual_robot_speed = (speed_M1 + speed_M2) / 2; // Positive: forward
+    actual_robot_speed = (speed_M1 + speed_M2) / 2;  // Positive: forward
 
-    int16_t angular_velocity = (angle_adjusted - angle_adjusted_Old) * 25.0; // 25 is an empirical extracted factor to adjust for real units
+    int16_t angular_velocity = (angle_adjusted - angle_adjusted_Old) * 25.0;  // 25 is an empirical extracted factor to adjust for real units
     int16_t estimated_speed = -actual_robot_speed + angular_velocity;
-    estimated_speed_filtered = estimated_speed_filtered * 0.9 + (float) estimated_speed * 0.1; // low pass filter on estimated speed
+    estimated_speed_filtered = estimated_speed_filtered * 0.9 + (float)estimated_speed * 0.1;  // low pass filter on estimated speed
 
 
     if (positionControlMode) {
@@ -339,13 +338,13 @@ void loop() {
     // ROBOT SPEED CONTROL: This is a PI controller.
     //    input:user throttle(robot speed), variable: estimated robot speed, output: target robot angle to get the desired speed
     target_angle = speedPIControl(dt, estimated_speed_filtered, throttle, Kp_thr, Ki_thr);
-    target_angle = constrain(target_angle, -max_target_angle, max_target_angle); // limited output
+    target_angle = constrain(target_angle, -max_target_angle, max_target_angle);  // limited output
 
     // Stability control (100Hz loop): This is a PD controller.
     //    input: robot target angle(from SPEED CONTROL), variable: robot angle, output: Motor speed
     //    We integrate the output (sumatory), so the output is really the motor acceleration, not motor speed.
     control_output += stabilityPDControl(dt, angle_adjusted, target_angle, Kp, Kd);
-    control_output = constrain(control_output, -MAX_CONTROL_OUTPUT,  MAX_CONTROL_OUTPUT); // Limit max output from control
+    control_output = constrain(control_output, -MAX_CONTROL_OUTPUT, MAX_CONTROL_OUTPUT);  // Limit max output from control
 
     // The steering part from the user is injected directly to the output
     motor1 = control_output + steering;
@@ -356,18 +355,18 @@ void loop() {
     motor2 = constrain(motor2, -MAX_CONTROL_OUTPUT, MAX_CONTROL_OUTPUT);
 
     int angle_ready;
-    if (OSCpush[0])     // If we press the SERVO button we start to move
+    if (OSCpush[0])  // If we press the SERVO button we start to move
       angle_ready = 82;
     else
-      angle_ready = 74;  // Default angle
-    if ((angle_adjusted < angle_ready) && (angle_adjusted > -angle_ready)) // Is robot ready (upright?)
-        {
+      angle_ready = 74;                                                     // Default angle
+    if ((angle_adjusted < angle_ready) && (angle_adjusted > -angle_ready))  // Is robot ready (upright?)
+    {
       // NORMAL MODE
       digitalWrite(PIN_ENABLE_MOTORS, LOW);  // Motors enable
       // NOW we send the commands to the motors
       setMotorSpeedM1(motor1);
       setMotorSpeedM2(motor2);
-    } else   // Robot not ready (flat), angle > angle_ready => ROBOT OFF
+    } else  // Robot not ready (flat), angle > angle_ready => ROBOT OFF
     {
       digitalWrite(PIN_ENABLE_MOTORS, HIGH);  // Disable motors
       setMotorSpeedM1(0);
@@ -385,7 +384,7 @@ void loop() {
       throttle = 0;
       steering = 0;
     }
-    
+
     // Push1 Move servo arm
     if (OSCpush[0]) {
       if (angle_adjusted > -40)
@@ -400,20 +399,19 @@ void loop() {
 
     // Normal condition?
     if ((angle_adjusted < 56) && (angle_adjusted > -56)) {
-      Kp = Kp_user;            // Default user control gains
+      Kp = Kp_user;  // Default user control gains
       Kd = Kd_user;
       Kp_thr = Kp_thr_user;
       Ki_thr = Ki_thr_user;
-    } else // We are in the raise up procedure => we use special control parameters
+    } else  // We are in the raise up procedure => we use special control parameters
     {
-      Kp = KP_RAISEUP;         // CONTROL GAINS FOR RAISE UP
+      Kp = KP_RAISEUP;  // CONTROL GAINS FOR RAISE UP
       Kd = KD_RAISEUP;
       Kp_thr = KP_THROTTLE_RAISEUP;
       Ki_thr = KI_THROTTLE_RAISEUP;
     }
 
-  } // End of new IMU data
-
+  }  // End of new IMU data
 }
 
 
@@ -422,9 +420,9 @@ void processOSCMsg() {
   if (OSCpage == 1) {
     if (modifing_control_parameters)  // We came from the settings screen
     {
-      OSCfader[0] = 0.5; // default neutral values
-      OSCfader[1] = 0.5; // default neutral values
-      OSCtoggle[0] = 0;  // Normal mode
+      OSCfader[0] = 0.5;  // default neutral values
+      OSCfader[1] = 0.5;  // default neutral values
+      OSCtoggle[0] = 0;   // Normal mode
       mode = 0;
       modifing_control_parameters = false;
     }
@@ -465,7 +463,7 @@ void processOSCMsg() {
       max_target_angle = MAX_TARGET_ANGLE;
       mode = 0;
     }
-  } else if (OSCpage == 2) { // OSC page 2
+  } else if (OSCpage == 2) {  // OSC page 2
     if (!modifing_control_parameters) {
       for (uint8_t i = 0; i < 4; i++)
         OSCfader[i] = 0.5;

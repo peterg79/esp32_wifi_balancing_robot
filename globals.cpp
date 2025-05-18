@@ -13,13 +13,13 @@ String MAC;  // MAC address of Wifi module
 
 volatile long counter1 = 0;
 volatile long counter2 = 0;
-hw_timer_t * timer1 = NULL;
-hw_timer_t * timer2 = NULL;
+hw_timer_t* timer1 = NULL;
+hw_timer_t* timer2 = NULL;
 
 uint8_t cascade_control_loop_counter = 0;
-uint8_t loop_counter;       // To generate a medium loop 40Hz
-uint8_t slow_loop_counter;  // slow loop 2Hz
-uint8_t sendBattery_counter; // To send battery status
+uint8_t loop_counter;         // To generate a medium loop 40Hz
+uint8_t slow_loop_counter;    // slow loop 2Hz
+uint8_t sendBattery_counter;  // To send battery status
 int16_t BatteryValue;
 
 long timer_old;
@@ -30,7 +30,7 @@ float dt;
 // Angle of the robot (used for stability control)
 float angle_adjusted;
 float angle_adjusted_Old;
-float angle_adjusted_filtered=0.0;
+float angle_adjusted_filtered = 0.0;
 
 // Default control values from constant definitions
 float Kp = KP;
@@ -74,11 +74,11 @@ int32_t target_steps2;
 int16_t motor1_control;
 int16_t motor2_control;
 
-int16_t speed_M1, speed_M2;        // Actual speed of motors
-int8_t  dir_M1, dir_M2;            // Actual direction of steppers motors
-int16_t actual_robot_speed;        // overall robot speed (measured from steppers speed)
+int16_t speed_M1, speed_M2;  // Actual speed of motors
+int8_t dir_M1, dir_M2;       // Actual direction of steppers motors
+int16_t actual_robot_speed;  // overall robot speed (measured from steppers speed)
 int16_t actual_robot_speed_Old;
-float estimated_speed_filtered;    // Estimated robot speed
+float estimated_speed_filtered;  // Estimated robot speed
 
 // OSC output variables
 uint8_t OSCpage;
