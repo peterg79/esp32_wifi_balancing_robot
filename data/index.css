@@ -64,7 +64,7 @@ body {
 
 .buttonServo {
     font-size: 64px;
-    height: 100px;
+    height: 200px;
     width: 100%;
 }
 
@@ -143,4 +143,8 @@ input[type="checkbox"]:checked+label {
     height: 200px;
     width: 600px;
     overflow: scroll;
+}
+
+#joystick {
+ border: 0px;
 }
