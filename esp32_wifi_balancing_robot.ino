@@ -338,19 +338,13 @@ void setup() {
     }
   });
 
-  server.on("/index.css", HTTP_GET, [](AsyncWebServerRequest* request) {
-    request->send(LittleFS, "/index.css", String(), false);
-  });
-
-  server.on("/upload.html", HTTP_GET, [](AsyncWebServerRequest* request) {
-    request->send(LittleFS, "/upload.html", String(), false, processor);
-  });
-
   server.on(
     "/upload", HTTP_POST, [](AsyncWebServerRequest* request) {
       request->send(200);
     },
     handleUpload);
+
+  server.serveStatic("/", LittleFS, "/").setTemplateProcessor(processor).setCacheControl("max-age=15");
 
   server.onNotFound(notFound);  // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
   server.begin();               // actually start the server
