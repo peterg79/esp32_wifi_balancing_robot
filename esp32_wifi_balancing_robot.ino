@@ -11,8 +11,10 @@
 #include <Arduino.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <DNSServer.h>
 #include <FS.h>
 #include <LittleFS.h>
+#include <Preferences.h>
 #include "Control.h"
 #include "MPU6050.h"
 #include "Motors.h"
@@ -41,13 +43,12 @@ const char* PARAM_FADER4 = "fader4";
 const char* PARAM_FADER5 = "fader5";
 const char* PARAM_FADER6 = "fader6";
 
-/* Wifi Crdentials */
-String sta_ssid = WIFI_SSID;
-String sta_password = WIFI_PASS;
+Preferences preferences;
 
 unsigned long previousMillis = 0;
 
 AsyncWebServer server(80);
+DNSServer dnsServer;
 
 void initMPU6050() {
   MPU6050_setup();
@@ -105,6 +106,13 @@ String processor(const String& var) {
 
   if (var == "TOTALFS") {
     return humanReadableSize(LittleFS.totalBytes());
+  }
+
+  if (var == "WIFI_MODE") {
+    if (preferences.getBool("wifi_sta", true))
+      return "STA";
+    else
+      return "AP";
   }
 
   return String();
@@ -175,6 +183,8 @@ void setup() {
   Wire.begin();
   initMPU6050();
 
+  preferences.begin("robot", false);
+
   // Set NodeMCU Wifi hostname based on chip mac address
   char chip_id[15];
   snprintf(chip_id, 15, "%04X", (uint16_t)(ESP.getEfuseMac() >> 32));
@@ -182,42 +192,54 @@ void setup() {
 
   Serial.println();
   Serial.println("Hostname: " + hostname);
-
-  // first, set NodeMCU as STA mode to connect with a Wifi network
-  WiFi.mode(WIFI_STA);
-  WiFi.hostname(hostname);
-  WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
-  Serial.println("");
-  Serial.print("Connecting to: ");
-  Serial.println(sta_ssid);
-  Serial.print("Password: ");
-  Serial.println(sta_password);
-
-  // try to connect with Wifi network about 8 seconds
-  unsigned long currentMillis = millis();
-  previousMillis = currentMillis;
-  while (WiFi.status() != WL_CONNECTED && currentMillis - previousMillis <= 8000) {
-    delay(500);
-    Serial.print(".");
-    currentMillis = millis();
-  }
-
-  // if failed to connect with Wifi network set NodeMCU as AP mode
   IPAddress myIP;
-  if (WiFi.status() == WL_CONNECTED) {
+
+  if (preferences.getBool("wifi_sta", true)) {
+    // first, set NodeMCU as STA mode to connect with a Wifi network
+    WiFi.mode(WIFI_STA);
+    WiFi.hostname(hostname);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
     Serial.println("");
-    Serial.println("*WiFi-STA-Mode*");
-    Serial.print("IP: ");
-    myIP = WiFi.localIP();
-    Serial.println(myIP);
-    digitalWrite(PIN_WIFI_LED, HIGH);  // Wifi LED on when connected to Wifi as STA mode
-    delay(2000);
+    Serial.print("Connecting to: ");
+    Serial.println(WIFI_SSID);
+    Serial.print("Password: ");
+    Serial.println(WIFI_PASS);
+
+    // try to connect with Wifi network about 8 seconds
+    unsigned long currentMillis = millis();
+    previousMillis = currentMillis;
+    while (WiFi.status() != WL_CONNECTED && currentMillis - previousMillis <= 8000) {
+      delay(500);
+      Serial.print(".");
+      currentMillis = millis();
+    }
+
+    // if failed to connect with Wifi network set NodeMCU as AP mode
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("");
+      Serial.println("*WiFi-STA-Mode*");
+      Serial.print("IP: ");
+      myIP = WiFi.localIP();
+      Serial.println(myIP);
+      digitalWrite(PIN_WIFI_LED, HIGH);  // Wifi LED on when connected to Wifi as STA mode
+      delay(2000);
+    } else {
+      WiFi.mode(WIFI_AP);
+      WiFi.softAP(hostname.c_str());
+      myIP = WiFi.softAPIP();
+      Serial.println("");
+      Serial.println("WiFi failed connected to " + String(WIFI_SSID));
+      Serial.println("");
+      Serial.println("*WiFi-AP-Mode*");
+      Serial.print("AP IP address: ");
+      Serial.println(myIP);
+      digitalWrite(PIN_WIFI_LED, LOW);  // Wifi LED off when status as AP mode
+      delay(2000);
+    }
   } else {
     WiFi.mode(WIFI_AP);
     WiFi.softAP(hostname.c_str());
     myIP = WiFi.softAPIP();
-    Serial.println("");
-    Serial.println("WiFi failed connected to " + sta_ssid);
     Serial.println("");
     Serial.println("*WiFi-AP-Mode*");
     Serial.print("AP IP address: ");
@@ -226,16 +248,19 @@ void setup() {
     delay(2000);
   }
 
+  Serial.println("Starting DNS Server");
+  // redirecting any domain name (*) to the IP of ESP32
+  dnsServer.start(53, "*", WiFi.softAPIP());
+
   if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
     Serial.println("LittleFS Mount Failed");
   }
 
   // Send a GET request to <ESP_IP>/?fader=<inputValue>
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+  server.on("/robot", HTTP_GET, [](AsyncWebServerRequest* request) {
     String inputValue;
     String inputMessage;
     OSCnewMessage = 1;
-    bool returnHtml = false;
 
     // Get value for Forward/Backward
     if (request->hasParam(PARAM_FADER1) || request->hasParam(PARAM_FADER2)) {
@@ -328,16 +353,12 @@ void setup() {
       OSCfader[0] = inputValue.toFloat();
     } else {
       inputValue = "No message sent";
-      returnHtml = true;
     }
     Serial.println(inputMessage + '=' + inputValue);
-    if (returnHtml) {
-      request->send(LittleFS, "/index.html", String(), false);
-    } else {
-      char rsp[256];
-      sprintf(rsp, "{\"angle_adjusted\": %.2f}", angle_adjusted);
-      request->send(200, "text/json", rsp);
-    }
+
+    char rsp[256];
+    sprintf(rsp, "{\"angle_adjusted\": %.2f}", angle_adjusted);
+    request->send(200, "text/json", rsp);
   });
 
   server.on(
@@ -346,7 +367,19 @@ void setup() {
     },
     handleUpload);
 
-  server.serveStatic("/", LittleFS, "/").setTemplateProcessor(processor).setCacheControl("max-age=15");
+  server.on("/wifi", HTTP_GET, [](AsyncWebServerRequest* request) {
+    if (request->hasParam("mode")) {
+      const String& in = request->getParam("mode")->value();
+      preferences.putBool("wifi_sta", in == "sta");
+    }
+    if (preferences.getBool("wifi_sta", true)) {
+      request->send(200, "text/plain", "STA");
+    } else {
+      request->send(200, "text/plain", "AP");
+    }
+  });
+
+  server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setTemplateProcessor(processor).setCacheControl("max-age=15");
 
   server.onNotFound(notFound);  // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
   server.begin();               // actually start the server

@@ -61,6 +61,7 @@
       initServo();
       initHorn();
       initJoystick();
+      initWifiMode();
     }
 
     function initJoystick() {
@@ -101,9 +102,13 @@
       //decode image data and show it somewhere on the html
     }
 
+    function command2(uri, dir) {
+      microAjax(URL + uri + "?" + dir, commandResponse);
+      log("Command: " + URL + uri + "?" + dir);
+    }
+
     function command(dir) {
-      microAjax(URL + "?" + dir, commandResponse);
-      log("Command: " + URL + "?" + dir);
+      command2("robot", dir);
     }
 
     /*
@@ -115,6 +120,27 @@
       microAjax(URL + "cam", readCam);
     }, 500);
     */
+
+    function initWifiMode() {
+      const wifi_mode = document.getElementById("wifi_mode");
+      wifi_mode.addEventListener("click", toggleWifiMode);
+      wifi_mode.addEventListener("touchmove", ignoreEvent, { passive: false });
+      wifi_mode.addEventListener("touchcancel", ignoreEvent, { passive: false });
+      log("wifi mode initialized.");
+    }
+
+    function toggleWifiMode(checkbox) {
+      if (document.getElementById("wifi_mode_label").innerText == "STA") {
+        command2("wifi", "mode=ap");
+        document.getElementById("wifi_mode_label").innerText = "AP";
+        log("Wifi mode set to AP");
+      } else {
+        command2("wifi", "mode=sta");
+        document.getElementById("wifi_mode_label").innerText = "STA";
+        log("Wifi mode set to STA");
+      }
+    }
+
     function initLight() {
       const light = document.getElementById("light");
       light.addEventListener("click", toggleLight);
@@ -197,6 +223,8 @@
           <button id="horn" class="button buttonHorn">&#9836;</button>
           <input type="checkbox" class="hidden" id="light" />
           <label for="light" class="button buttonLight">&#9967;</label>
+          <input type=checkbox class="hidden" id="wifi_mode" />
+          <label for="wifi_mode" class="button buttonLight" id="wifi_mode_label">%WIFI_MODE%</label>
         </td>
         <td>
           <div id="joyDiv" style="width:200px;height:200px;margin-bottom:20px;"></div>
