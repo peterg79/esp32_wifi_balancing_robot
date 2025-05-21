@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="index.css" />
   <script>
     // buttons from https://www.toptal.com/designers/htmlarrows/arrows/
+    // joystick from https://github.com/bobboteck/JoyStick
 
     //Non jQuery AJAX Lib (0.4 kb) to avoid using an iframe and make it easier to read the server response...
     function microAjax(B, A) {
@@ -54,13 +55,31 @@
     }
 
     window.addEventListener("load", onLoad);
-
+    var joy;
     function onLoad(event) {
       initLight();
-      //initPro();
       initServo();
       initHorn();
       initJoystick();
+    }
+
+    function initJoystick() {
+      joy = new JoyStick('joyDiv', { "internalFillColor": "#04aa6d", "externalStrokeColor": "#04aa6d", "autoReturnToCenter": true }, moveJoystick);
+      log("joystick initialized.");
+    }
+
+    var lastY = 0.50, lastX = 0.50;
+    function moveJoystick(stickData) {
+      newX = ((parseInt(stickData.x) + 100) / 200).toFixed(1);
+      newY = ((parseInt(stickData.y) + 100) / 200).toFixed(1);
+      document.getElementById("x_coordinate").innerText = newX;
+      document.getElementById("y_coordinate").innerText = newY;
+      if (lastY != newY || lastX != newX) {
+        lastY = newY;
+        lastX = newX;
+        command("fader1=" + newY + "&fader2=" + newX);
+      }
+
     }
 
     //var URL='http://172.27.201.232/'; //Or whatever IP
@@ -163,92 +182,8 @@
       horn.addEventListener("mouseup", ignoreEvent, { passive: false });
       log("horn initialized.");
     }
-
-    function goUp(evt) {
-      evt.preventDefault();
-      log("go up");
-      command("fader1=1.00");
-    }
-
-    function stopUp(evt) {
-      evt.preventDefault();
-      log("stop up");
-      command("fader1=0.50");
-    }
-
-    function goDown(evt) {
-      evt.preventDefault();
-      log("go down");
-      command("fader1=0.00");
-    }
-
-    function stopDown(evt) {
-      evt.preventDefault();
-      log("stop down");
-      command("fader1=0.50");
-    }
-
-    function goLeft(evt) {
-      evt.preventDefault();
-      log("go left");
-      command("fader2=1.00");
-    }
-
-    function stopLeft(evt) {
-      evt.preventDefault();
-      log("stop left");
-      command("fader2=0.50");
-    }
-
-    function goRight(evt) {
-      evt.preventDefault();
-      log("go right");
-      command("fader2=0.00");
-    }
-
-    function stopRight(evt) {
-      evt.preventDefault();
-      log("stop right");
-      command("fader2=0.50");
-    }
-
-    function initJoystick() {
-      const up = document.getElementById("up");
-      const down = document.getElementById("down");
-      const left = document.getElementById("left");
-      const right = document.getElementById("right");
-
-      up.addEventListener("touchstart", goUp, { passive: false });
-      up.addEventListener("touchend", stopUp, { passive: false });
-      up.addEventListener("touchmove", ignoreEvent, { passive: false });
-      up.addEventListener("touchcancel", ignoreEvent, { passive: false });
-      up.addEventListener("mousedown", goUp, { passive: false });
-      up.addEventListener("mouseup", stopUp, { passive: false });
-
-      down.addEventListener("touchstart", goDown, { passive: false });
-      down.addEventListener("touchend", stopDown, { passive: false });
-      down.addEventListener("touchmove", ignoreEvent, { passive: false });
-      down.addEventListener("touchcancel", ignoreEvent, { passive: false });
-      down.addEventListener("mousedown", goDown, { passive: false });
-      down.addEventListener("mouseup", stopDown, { passive: false });
-
-      left.addEventListener("touchstart", goLeft, { passive: false });
-      left.addEventListener("touchend", stopLeft, { passive: false });
-      left.addEventListener("touchmove", ignoreEvent, { passive: false });
-      left.addEventListener("touchcancel", ignoreEvent, { passive: false });
-      left.addEventListener("mousedown", goLeft, { passive: false });
-      left.addEventListener("mouseup", stopLeft, { passive: false });
-
-      right.addEventListener("touchstart", goRight, { passive: false });
-      right.addEventListener("touchend", stopRight, { passive: false });
-      right.addEventListener("touchmove", ignoreEvent, { passive: false });
-      right.addEventListener("touchcancel", ignoreEvent, { passive: false });
-      right.addEventListener("mousedown", goRight, { passive: false });
-      right.addEventListener("mouseup", stopRight, { passive: false });
-
-      log("joystick initialized.");
-    }
   </script>
+  <script src="joy.js"></script>
 </head>
 
 <body>
@@ -256,25 +191,23 @@
     <thead>
       <tr>
         <td>
-          <button id="up" class="button buttonUpDown">&uarr;</button><br />
-          <button id="down" class="button buttonUpDown">&darr;</button>
+          <button id="servo" class="button buttonServo">&orarr;</button>
         </td>
         <td>
-          <button id="servo" class="button buttonServo">&orarr;</button>
-          <br />
           <button id="horn" class="button buttonHorn">&#9836;</button>
           <input type="checkbox" class="hidden" id="light" />
           <label for="light" class="button buttonLight">&#9967;</label>
         </td>
         <td>
-          <span style="white-space: nowrap">
-            <button id="left" class="button buttonLeftRight">&larr;</button>
-            <button id="right" class="button buttonLeftRight">&rarr;</button>
-          </span>
+          <div id="joyDiv" style="width:200px;height:200px;margin-bottom:20px;"></div>
         </td>
       </tr>
     </thead>
   </table>
+  <p style="text-align: left">
+    X: <span id="x_coordinate"> </span>
+    Y: <span id="y_coordinate"> </span>
+  </p>
   <pre id="log" style="border: 1px solid #ccc"></pre>
 </body>
 

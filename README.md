@@ -11,6 +11,5 @@ Install [littlefs-uploader](https://github.com/earlephilhower/arduino-littlefs-u
 
 Then you're ready to compile and upload the firmware.
 
-TODO:
-- https://ai.thestempedia.com/docs/dabble-app/gamepad-module/
-- https://remotexy.com/en/examples/
+References:
+- https://github.com/bobboteck/JoyStick
