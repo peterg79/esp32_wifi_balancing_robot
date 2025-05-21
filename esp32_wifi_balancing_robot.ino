@@ -238,18 +238,20 @@ void setup() {
     bool returnHtml = false;
 
     // Get value for Forward/Backward
-    if (request->hasParam(PARAM_FADER1)) {
-      OSCpage = 1;
-      inputValue = request->getParam(PARAM_FADER1)->value();
-      inputMessage = PARAM_FADER1;
-      OSCfader[0] = inputValue.toFloat();
-    }
-    // Get value for Right/Left
-    else if (request->hasParam(PARAM_FADER2)) {
-      OSCpage = 1;
-      inputValue = request->getParam(PARAM_FADER2)->value();
-      inputMessage = PARAM_FADER2;
-      OSCfader[1] = inputValue.toFloat();
+    if (request->hasParam(PARAM_FADER1) || request->hasParam(PARAM_FADER2)) {
+      if (request->hasParam(PARAM_FADER1)) {
+        OSCpage = 1;
+        inputValue = request->getParam(PARAM_FADER1)->value();
+        inputMessage = PARAM_FADER1;
+        OSCfader[0] = inputValue.toFloat();
+      }
+      // Get value for Right/Left
+      if (request->hasParam(PARAM_FADER2)) {
+        OSCpage = 1;
+        inputValue = request->getParam(PARAM_FADER2)->value();
+        inputMessage = PARAM_FADER2;
+        OSCfader[1] = inputValue.toFloat();
+      }
     }
     // Get value for Servo0
     else if (request->hasParam(PARAM_PUSH1)) {
