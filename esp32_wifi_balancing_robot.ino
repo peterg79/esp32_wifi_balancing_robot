@@ -12,6 +12,7 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
+#include <ESPmDNS.h>
 #include <FS.h>
 #include <LittleFS.h>
 #include <Preferences.h>
@@ -148,6 +149,10 @@ void handleUpload(AsyncWebServerRequest* request, String filename, size_t index,
     Serial.println(logmessage);
     request->redirect("/");
   }
+}
+
+bool filterHtml(AsyncWebServerRequest* request) {
+  return request->url().endsWith("html") || request->url().endsWith("/");
 }
 
 void setup() {
@@ -379,7 +384,8 @@ void setup() {
     }
   });
 
-  server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setTemplateProcessor(processor).setCacheControl("max-age=15");
+  server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("max-age=15").setTemplateProcessor(processor).setFilter(filterHtml);
+  server.serveStatic("/", LittleFS, "/").setCacheControl("max-age=15");
 
   server.onNotFound(notFound);  // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
   server.begin();               // actually start the server
