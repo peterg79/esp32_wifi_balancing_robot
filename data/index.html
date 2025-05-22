@@ -60,6 +60,7 @@
       initLight();
       initServo();
       initHorn();
+      initReboot();
       initJoystick();
       initWifiMode();
     }
@@ -242,6 +243,23 @@
       horn.addEventListener("mouseup", ignoreEvent, { passive: false });
       log("horn initialized.");
     }
+
+    function rebootRobot(evt) {
+      evt.preventDefault();
+      log("reboot robot");
+      command2("reboot", "when=now");
+    }
+
+    function initReboot(){
+      const reboot = document.getElementById("reboot");
+      reboot.addEventListener("touchstart", rebootRobot, { passive: false });
+      reboot.addEventListener("touchend", ignoreEvent, { passive: false });
+      reboot.addEventListener("touchmove", ignoreEvent, { passive: false });
+      reboot.addEventListener("touchcancel", ignoreEvent, { passive: false });
+      reboot.addEventListener("mousedown", rebootRobot, { passive: false });
+      reboot.addEventListener("mouseup", ignoreEvent, { passive: false });
+      log("reboot initialized.");
+    }
   </script>
   <script src="joy.js"></script>
 </head>
@@ -292,6 +310,7 @@
     Y: <span id="y_coordinate"> </span>
   </p>
   <pre id="log" style="border: 1px solid #ccc"></pre>
+  <button id="reboot" class="button buttonReboot">Reboot</button><br />
 </body>
 
 </html>

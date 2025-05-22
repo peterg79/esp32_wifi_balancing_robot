@@ -384,6 +384,10 @@ void setup() {
     }
   });
 
+  server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest* request) {
+    ESP.restart();
+  });
+
   server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("max-age=15").setTemplateProcessor(processor).setFilter(filterHtml);
   server.serveStatic("/", LittleFS, "/").setCacheControl("max-age=15");
 
