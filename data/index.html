@@ -69,10 +69,44 @@
       log("joystick initialized.");
     }
 
+    function getSensitivity() {
+      var slider = document.getElementById("sensitivity");
+      return slider.value / 100;
+    }
+
+    function getSpeedMultiplier() {
+      var slider = document.getElementById("max_speed");
+      return slider.value / 10;
+    }
+
+    function getTurnSpeedMultiplier() {
+      var slider = document.getElementById("max_turn_speed");
+      return slider.value / 10;
+    }
+
+    function round(value, step) {
+      step || (step = 1.0);
+      var inv = 1.0 / step;
+      return (Math.round(value * inv) / inv);
+    }
+
+    function coordToFractionSpeed(pos) {
+      p = (parseInt(pos * getSpeedMultiplier()) + 100) / 200;
+      if (p > 1) { p = 1; }
+      if (p < 0) { p = 0; }
+      return round(p, getSensitivity()).toFixed(2);
+    }
+    function coordToFractionTurn(pos) {
+      p = (parseInt(pos * getTurnSpeedMultiplier()) + 100) / 200;
+      if (p > 1) { p = 1; }
+      if (p < 0) { p = 0; }
+      return round(p, getSensitivity()).toFixed(2);
+    }
+
     var lastY = 0.50, lastX = 0.50;
     function moveJoystick(stickData) {
-      newX = ((parseInt(stickData.x) + 100) / 200).toFixed(1);
-      newY = ((parseInt(stickData.y) + 100) / 200).toFixed(1);
+      newX = coordToFractionTurn(stickData.x);
+      newY = coordToFractionSpeed(stickData.y);
       document.getElementById("x_coordinate").innerText = newX;
       document.getElementById("y_coordinate").innerText = newY;
       if (lastY != newY || lastX != newX) {
@@ -220,9 +254,9 @@
           <button id="servo" class="button buttonServo">&orarr;</button>
         </td>
         <td>
-          <button id="horn" class="button buttonHorn">&#9836;</button>
+          <button id="horn" class="button buttonHorn">&#9836;</button><br />
           <input type="checkbox" class="hidden" id="light" />
-          <label for="light" class="button buttonLight">&#9967;</label>
+          <label for="light" class="button buttonLight">&#9967;</label> <br />
           <input type=checkbox class="hidden" id="wifi_mode" />
           <label for="wifi_mode" class="button buttonLight" id="wifi_mode_label">%WIFI_MODE%</label>
         </td>
@@ -230,8 +264,29 @@
           <div id="joyDiv" style="width:200px;height:200px;margin-bottom:20px;"></div>
         </td>
       </tr>
+      <tr>
+        <td>
+          Sensitivity:
+        </td>
+        <td colspan="2"><input type="range" min="1" max="10" value="5" class="slider" id="sensitivity"><br />
+      </tr>
+      <tr>
+        <td>
+          Max speed:
+        </td>
+        <td colspan="2">
+          <input type="range" min="1" max="10" value="5" class="slider" id="max_speed">
+      </tr>
+      <tr>
+        <td>
+          Max turn speed:
+        </td>
+        <td colspan="2">
+          <input type="range" min="1" max="10" value="5" class="slider" id="max_turn_speed">
+      </tr>
     </thead>
   </table>
+
   <p style="text-align: left">
     X: <span id="x_coordinate"> </span>
     Y: <span id="y_coordinate"> </span>
