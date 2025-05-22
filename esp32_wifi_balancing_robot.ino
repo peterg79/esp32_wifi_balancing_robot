@@ -51,6 +51,8 @@ unsigned long previousMillis = 0;
 AsyncWebServer server(80);
 DNSServer dnsServer;
 
+unsigned long lastCommandTime;
+
 void initMPU6050() {
   MPU6050_setup();
   delay(500);
@@ -266,6 +268,7 @@ void setup() {
     String inputValue;
     String inputMessage;
     OSCnewMessage = 1;
+    lastCommandTime = millis();
 
     // Get value for Forward/Backward
     if (request->hasParam(PARAM_FADER1) || request->hasParam(PARAM_FADER2)) {
@@ -416,9 +419,18 @@ void setup() {
   ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
 
   ArduinoOTA.begin();  // enable to receive update/upload firmware via Wifi OTA
+  lastCommandTime = millis();
 }
 
 void loop() {
+  if (millis() > lastCommandTime + 1000 * 60 * 10) {
+    // deep sleep after 10 minues of inactivity
+    setMotorSpeedM1(0);
+    setMotorSpeedM2(0);
+    digitalWrite(PIN_ENABLE_MOTORS, HIGH);  // Disable motors
+    esp_deep_sleep_start();
+  }
+
   ArduinoOTA.handle();
 
   if (OSCnewMessage) {
