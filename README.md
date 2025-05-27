@@ -12,4 +12,8 @@ Install [littlefs-uploader](https://github.com/earlephilhower/arduino-littlefs-u
 Then you're ready to compile and upload the firmware.
 
 References:
+- https://www.instructables.com/DIY-ESP32-Wifi-Self-Balancing-Robot-B-Robot-ESP32-/
+- https://www.pcbway.com/project/shareproject/ESP32_Balancing_Robot_Shield.html
+- https://www.thingiverse.com/thing:2306541
 - https://github.com/bobboteck/JoyStick
+
