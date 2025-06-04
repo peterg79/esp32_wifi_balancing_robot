@@ -5,31 +5,43 @@
  *      Author: anonymous
  */
 
+#include "secret.h"
+//#define I2C_DISABLED
+
+#ifdef PS3_ENABLED
+#include <Ps3Controller.h>
+#define WEB_DISABLED
+#endif  // PS3_ENABLED
+
 #include <Wire.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
 #include <Arduino.h>
+#include <ESPmDNS.h>
+
+#ifndef WEB_DISABLED
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
-#include <ESPmDNS.h>
+#endif  // WEB_DISABLED
+
 #include <FS.h>
 #include <LittleFS.h>
 #include <Preferences.h>
+
 #include "Control.h"
 #include "MPU6050.h"
 #include "Motors.h"
 #include "defines.h"
 #include "globals.h"
 #include <stdio.h>
-#include "esp_types.h"
-#include "soc/timer_group_struct.h"
-#include "driver/periph_ctrl.h"
-#include "driver/timer.h"
-#include "driver/ledc.h"
-#include "esp32-hal-ledc.h"
-#include "secret.h"
+#include <esp_types.h>
+#include <soc/timer_group_struct.h>
+#include <driver/gptimer.h>
+#include <driver/ledc.h>
+#include <esp32-hal-ledc.h>
 
+#define PS3_MAC_DEFAULT "00:00:00:00:00:00"
 #define FORMAT_LITTLEFS_IF_FAILED true
 
 const char* PARAM_FADER1 = "fader1";
@@ -48,8 +60,10 @@ Preferences preferences;
 
 unsigned long previousMillis = 0;
 
+#ifndef WEB_DISABLED
 AsyncWebServer server(80);
 DNSServer dnsServer;
+#endif  // WEB_DISABLED
 
 unsigned long lastCommandTime;
 
@@ -99,6 +113,7 @@ String processor(const String& var) {
   if (var == "FILELIST") {
     return listFiles(true);
   }
+
   if (var == "FREEFS") {
     return humanReadableSize((LittleFS.totalBytes() - LittleFS.usedBytes()));
   }
@@ -121,6 +136,7 @@ String processor(const String& var) {
   return String();
 }
 
+#ifndef WEB_DISABLED
 void notFound(AsyncWebServerRequest* request) {
   request->send(404, "text/plain", "Not found");
 }
@@ -156,12 +172,274 @@ void handleUpload(AsyncWebServerRequest* request, String filename, size_t index,
 bool filterHtml(AsyncWebServerRequest* request) {
   return request->url().endsWith("html") || request->url().endsWith("/");
 }
+#endif  // WEB_DISABLED
+
+#ifdef PS3_ENABLED
+int player = 0;
+int battery = 0;
+
+void notify() {
+
+  // speed and turn finetuning (1-10)
+  static int maxspeed = 5;
+  static int maxturn = 5;
+
+  OSCpage = 1;
+  OSCnewMessage = 1;
+  lastCommandTime = millis();
+  //--- Digital cross/square/triangle/circle button events ---
+  if (Ps3.event.button_down.cross) {
+    Serial.println("Started pressing the cross button");
+    OSCpush[0] = 1;
+  }
+  if (Ps3.event.button_up.cross) {
+    Serial.println("Released the cross button");
+    OSCpush[0] = 0;
+  }
+
+  if (Ps3.event.button_down.square) {
+    Serial.println("Started pressing the square button");
+    digitalWrite(PIN_LED, LOW);
+  }
+  if (Ps3.event.button_up.square)
+    Serial.println("Released the square button");
+
+  if (Ps3.event.button_down.triangle) {
+    Serial.println("Started pressing the triangle button");
+    Serial.println("Buzzer on!");
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(150);
+    digitalWrite(PIN_BUZZER, LOW);
+    delay(80);
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(150);
+    digitalWrite(PIN_BUZZER, LOW);
+    delay(80);
+  }
+  if (Ps3.event.button_up.triangle)
+    Serial.println("Released the triangle button");
+
+  if (Ps3.event.button_down.circle) {
+    Serial.println("Started pressing the circle button");
+    digitalWrite(PIN_LED, HIGH);
+  }
+  if (Ps3.event.button_up.circle)
+    Serial.println("Released the circle button");
+
+  //--------------- Digital D-pad button events --------------
+  if (Ps3.event.button_down.up) {
+    Serial.println("Started pressing the up button");
+    if (maxspeed <= 9) maxspeed += 1;
+    Serial.print("maxspeed set to: ");
+    Serial.println(maxspeed, DEC);
+    Ps3.setPlayer(maxspeed);
+  }
+  if (Ps3.event.button_up.up)
+    Serial.println("Released the up button");
+
+  if (Ps3.event.button_down.right) {
+    Serial.println("Started pressing the right button");
+    if (maxturn <= 9) maxturn += 1;
+    Serial.print("maxturn set to: ");
+    Serial.println(maxturn, DEC);
+    Ps3.setPlayer(maxturn);
+  }
+  if (Ps3.event.button_up.right)
+    Serial.println("Released the right button");
+
+  if (Ps3.event.button_down.down) {
+    Serial.println("Started pressing the down button");
+    if (maxspeed > 1) maxspeed -= 1;
+    Serial.print("maxspeed set to: ");
+    Serial.println(maxspeed, DEC);
+    Ps3.setPlayer(maxspeed);
+  }
+  if (Ps3.event.button_up.down)
+    Serial.println("Released the down button");
+
+  if (Ps3.event.button_down.left) {
+    Serial.println("Started pressing the left button");
+    Serial.println("Started pressing the down button");
+    if (maxturn > 1) maxturn -= 1;
+    Serial.print("maxturn set to: ");
+    Serial.println(maxturn, DEC);
+    Ps3.setPlayer(maxturn);
+  }
+  if (Ps3.event.button_up.left)
+    Serial.println("Released the left button");
+
+  //------------- Digital shoulder button events -------------
+  if (Ps3.event.button_down.l1)
+    Serial.println("Started pressing the left shoulder button");
+  if (Ps3.event.button_up.l1)
+    Serial.println("Released the left shoulder button");
+
+  if (Ps3.event.button_down.r1)
+    Serial.println("Started pressing the right shoulder button");
+  if (Ps3.event.button_up.r1)
+    Serial.println("Released the right shoulder button");
+
+  //-------------- Digital trigger button events -------------
+  if (Ps3.event.button_down.l2)
+    Serial.println("Started pressing the left trigger button");
+  if (Ps3.event.button_up.l2)
+    Serial.println("Released the left trigger button");
+
+  if (Ps3.event.button_down.r2)
+    Serial.println("Started pressing the right trigger button");
+  if (Ps3.event.button_up.r2)
+    Serial.println("Released the right trigger button");
+
+  //--------------- Digital stick button events --------------
+  if (Ps3.event.button_down.l3)
+    Serial.println("Started pressing the left stick button");
+  if (Ps3.event.button_up.l3)
+    Serial.println("Released the left stick button");
+
+  if (Ps3.event.button_down.r3)
+    Serial.println("Started pressing the right stick button");
+  if (Ps3.event.button_up.r3)
+    Serial.println("Released the right stick button");
+
+  //---------- Digital select/start/ps button events ---------
+  if (Ps3.event.button_down.select)
+    Serial.println("Started pressing the select button");
+  if (Ps3.event.button_up.select)
+    Serial.println("Released the select button");
+
+  if (Ps3.event.button_down.start)
+    Serial.println("Started pressing the start button");
+  if (Ps3.event.button_up.start)
+    Serial.println("Released the start button");
+
+  if (Ps3.event.button_down.ps)
+    Serial.println("Started pressing the Playstation button");
+  if (Ps3.event.button_up.ps)
+    Serial.println("Released the Playstation button");
+
+
+
+
+
+  //---------------- Analog stick value events ---------------
+  if (abs(Ps3.event.analog_changed.stick.lx) + abs(Ps3.event.analog_changed.stick.ly) > 2) {
+    // left/right
+    Serial.print("Moved the left stick:");
+    Serial.print(" x=");
+    Serial.print(Ps3.data.analog.stick.lx, DEC);
+    Serial.print(" y=");
+    Serial.print(Ps3.data.analog.stick.ly, DEC);
+    Serial.println();
+    float x = static_cast<float>(128 + (Ps3.data.analog.stick.lx * maxturn / 10)) / 256;
+    x = static_cast<float>(static_cast<int>(x * 100 + .5)) / 100;
+    OSCfader[1] = x;
+    Serial.printf("Setting X to %f", x);
+    Serial.println();
+  }
+
+  if (abs(Ps3.event.analog_changed.stick.rx) + abs(Ps3.event.analog_changed.stick.ry) > 2) {
+    // forward/backward
+    Serial.print("Moved the right stick:");
+    Serial.print(" x=");
+    Serial.print(Ps3.data.analog.stick.rx, DEC);
+    Serial.print(" y=");
+    Serial.print(Ps3.data.analog.stick.ry, DEC);
+    Serial.println();
+    float y = static_cast<float>(128 - (Ps3.data.analog.stick.ry * maxspeed / 10)) / 256;
+    y = static_cast<float>(static_cast<int>(y * 100 + .5)) / 100;
+    OSCfader[0] = y;
+    Serial.printf("Setting Y to %f", y);
+    Serial.println();
+  }
+
+  //--------------- Analog D-pad button events ----------------
+  if (abs(Ps3.event.analog_changed.button.up)) {
+    Serial.print("Pressing the up button: ");
+    Serial.println(Ps3.data.analog.button.up, DEC);
+  }
+
+  if (abs(Ps3.event.analog_changed.button.right)) {
+    Serial.print("Pressing the right button: ");
+    Serial.println(Ps3.data.analog.button.right, DEC);
+  }
+
+  if (abs(Ps3.event.analog_changed.button.down)) {
+    Serial.print("Pressing the down button: ");
+    Serial.println(Ps3.data.analog.button.down, DEC);
+  }
+
+  if (abs(Ps3.event.analog_changed.button.left)) {
+    Serial.print("Pressing the left button: ");
+    Serial.println(Ps3.data.analog.button.left, DEC);
+  }
+
+  //---------- Analog shoulder/trigger button events ----------
+  if (abs(Ps3.event.analog_changed.button.l1)) {
+    Serial.print("Pressing the left shoulder button: ");
+    Serial.println(Ps3.data.analog.button.l1, DEC);
+  }
+
+  if (abs(Ps3.event.analog_changed.button.r1)) {
+    Serial.print("Pressing the right shoulder button: ");
+    Serial.println(Ps3.data.analog.button.r1, DEC);
+  }
+
+  if (abs(Ps3.event.analog_changed.button.l2)) {
+    Serial.print("Pressing the left trigger button: ");
+    Serial.println(Ps3.data.analog.button.l2, DEC);
+  }
+
+  if (abs(Ps3.event.analog_changed.button.r2)) {
+    Serial.print("Pressing the right trigger button: ");
+    Serial.println(Ps3.data.analog.button.r2, DEC);
+  }
+
+  //---- Analog cross/square/triangle/circle button events ----
+  if (abs(Ps3.event.analog_changed.button.triangle)) {
+    Serial.print("Pressing the triangle button: ");
+    Serial.println(Ps3.data.analog.button.triangle, DEC);
+  }
+
+  if (abs(Ps3.event.analog_changed.button.circle)) {
+    Serial.print("Pressing the circle button: ");
+    Serial.println(Ps3.data.analog.button.circle, DEC);
+  }
+
+  if (abs(Ps3.event.analog_changed.button.cross)) {
+    Serial.print("Pressing the cross button: ");
+    Serial.println(Ps3.data.analog.button.cross, DEC);
+  }
+
+  if (abs(Ps3.event.analog_changed.button.square)) {
+    Serial.print("Pressing the square button: ");
+    Serial.println(Ps3.data.analog.button.square, DEC);
+  }
+
+  //---------------------- Battery events ---------------------
+  if (battery != Ps3.data.status.battery) {
+    battery = Ps3.data.status.battery;
+    Serial.print("The controller battery is ");
+    if (battery == ps3_status_battery_charging) Serial.println("charging");
+    else if (battery == ps3_status_battery_full) Serial.println("FULL");
+    else if (battery == ps3_status_battery_high) Serial.println("HIGH");
+    else if (battery == ps3_status_battery_low) Serial.println("LOW");
+    else if (battery == ps3_status_battery_dying) Serial.println("DYING");
+    else if (battery == ps3_status_battery_shutdown) Serial.println("SHUTDOWN");
+    else Serial.println("UNDEFINED");
+  }
+}
+
+void onConnect() {
+  Serial.println("Connected.");
+}
+
+#endif  // PS3_ENABLED
 
 void setup() {
   Serial.begin(115200);  // set up seriamonitor at 115200 bps
   Serial.setDebugOutput(true);
   Serial.println();
-  Serial.println("*ESP32 Camera Balancing Robot*");
+  Serial.println("*ESP32 Balancing Robot*");
   Serial.println("--------------------------------------------------------");
 
 
@@ -187,11 +465,33 @@ void setup() {
   delay(50);
   ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
 
+#ifndef I2C_DISABLED
   Wire.begin();
   initMPU6050();
+#endif  // I2C_DISABLED
 
   preferences.begin("robot", false);
 
+#ifdef PS3_ENABLED
+#ifdef PS3_MAC
+  const String& ps3_mac = preferences.getString("ps3_mac", PS3_MAC);
+#else
+  const String& ps3_mac = preferences.getString("ps3_mac", PS3_MAC_DEFAULT);
+#endif  // PS3_MAC
+  // save the esp32's bluetooth mac address to preferences
+  if (!preferences.isKey("bt_mac")) {
+    Ps3.begin();
+    String bt_mac = Ps3.getAddress();
+    preferences.putString("bt_mac", bt_mac);
+    Serial.println("BT Mac Address: " + bt_mac);
+    Ps3.end();
+    delay(200);
+  }
+  Ps3.attach(notify);
+  Ps3.attachOnConnect(onConnect);
+  Ps3.begin(ps3_mac.c_str());
+  Serial.println("PS3 Ready.");
+#endif  // PS3_ENABLED
   // Set NodeMCU Wifi hostname based on chip mac address
   char chip_id[15];
   snprintf(chip_id, 15, "%04X", (uint16_t)(ESP.getEfuseMac() >> 32));
@@ -245,6 +545,7 @@ void setup() {
     }
   } else {
     WiFi.mode(WIFI_AP);
+    WiFi.setTxPower(WIFI_POWER_5dBm);
     WiFi.softAP(hostname.c_str());
     myIP = WiFi.softAPIP();
     Serial.println("");
@@ -255,13 +556,10 @@ void setup() {
     delay(2000);
   }
 
+#ifndef WEB_DISABLED
   Serial.println("Starting DNS Server");
   // redirecting any domain name (*) to the IP of ESP32
   dnsServer.start(53, "*", WiFi.softAPIP());
-
-  if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
-    Serial.println("LittleFS Mount Failed");
-  }
 
   // Send a GET request to <ESP_IP>/?fader=<inputValue>
   server.on("/robot", HTTP_GET, [](AsyncWebServerRequest* request) {
@@ -397,6 +695,12 @@ void setup() {
   server.onNotFound(notFound);  // when a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
   server.begin();               // actually start the server
 
+  // we only need file system if wifi is enabled
+  if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
+    Serial.println("LittleFS Mount Failed");
+  }
+#endif  // WEB_DISABLED
+
   initTimers();
 
   // default neutral values
@@ -418,11 +722,24 @@ void setup() {
   }
   ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
 
-  ArduinoOTA.begin();  // enable to receive update/upload firmware via Wifi OTA
+  // enable to receive update/upload firmware via Wifi OTA
+  ArduinoOTA.begin();
+
   lastCommandTime = millis();
 }
 
 void loop() {
+#ifdef PS3_ENABLED
+  static bool ps3_connected = false;
+  if (Ps3.isConnected()) {
+    if (!ps3_connected) {
+      Serial.println("PS3 Controller connected");
+      ps3_connected = true;
+    }
+  } else {
+    ps3_connected = false;
+  }
+#endif  // PS3_ENABLED
   if (millis() > lastCommandTime + 1000 * 60 * 10) {
     // deep sleep after 10 minues of inactivity
     setMotorSpeedM1(0);
@@ -440,6 +757,7 @@ void loop() {
 
   timer_value = micros();
 
+#ifndef I2C_DISABLED
   if (MPU6050_newData()) {
 
     MPU6050_read_3axis();
@@ -553,7 +871,8 @@ void loop() {
       Ki_thr = KI_THROTTLE_RAISEUP;
     }
 
-  }  // End of new IMU data
+  }     // End of new IMU data
+#endif  // I2C_DISABLED
 }
 
 
