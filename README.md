@@ -11,5 +11,18 @@ Install [littlefs-uploader](https://github.com/earlephilhower/arduino-littlefs-u
 
 Then you're ready to compile and upload the firmware.
 
+##Pairing a PS3 controller
+Please follow the guide here: [jvpernis/esp32-ps3](https://github.com/jvpernis/esp32-ps3)
+
+##Memory limitations
+Due to the limited memory on the esp32 module, it cannot run wifi and bluetooth at the same time. If you use a PS3 controller, enable it in `secrets.h` - it will automatically disable the web server.
+
 References:
 - https://github.com/bobboteck/JoyStick
+- https://github.com/jvpernis/esp32-ps3
+- https://github.com/arduino/arduino-ide/issues/1030
+    - rm -rf ~/Library/Application\ Support/arduino-ide/
+- https://github.com/espressif/arduino-esp32/blob/master/tools/partitions/huge_app.csv
+
+TODO:
+- evaluate this library to support more controllers: https://bluepad32.readthedocs.io/en/latest/supported_gamepads/
