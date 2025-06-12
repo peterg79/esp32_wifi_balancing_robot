@@ -16,6 +16,7 @@
 #include <FS.h>
 #include <LittleFS.h>
 #include <Preferences.h>
+#include <ESP32Servo.h>
 #include "Control.h"
 #include "MPU6050.h"
 #include "Motors.h"
@@ -45,6 +46,7 @@ const char* PARAM_FADER5 = "fader5";
 const char* PARAM_FADER6 = "fader6";
 
 Preferences preferences;
+Servo servo0;
 
 unsigned long previousMillis = 0;
 
@@ -172,7 +174,6 @@ void setup() {
   pinMode(PIN_MOTOR1_STEP, OUTPUT);
   pinMode(PIN_MOTOR2_DIR, OUTPUT);
   pinMode(PIN_MOTOR2_STEP, OUTPUT);
-  pinMode(PIN_SERVO, OUTPUT);
 
   pinMode(PIN_LED, OUTPUT);
   digitalWrite(PIN_LED, LOW);
@@ -183,9 +184,9 @@ void setup() {
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
 
-  ledcAttach(PIN_SERVO, 50, 16);  // 50 Hz, 16-bit width
-  delay(50);
-  ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
+  servo0.setPeriodHertz(SERVO_FREQUENCY);
+  servo0.setTimerWidth(SERVO_TIMER_WIDTH);
+  servo0.attach(PIN_SERVO, SERVO_MIN_PULSE_WIDTH, SERVO_MAX_PULSE_WIDTH);
 
   Wire.begin();
   initMPU6050();
@@ -409,14 +410,14 @@ void setup() {
   for (uint8_t k = 0; k < 5; k++) {
     setMotorSpeedM1(5);
     setMotorSpeedM2(5);
-    ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO + 250);
+    servo0.write(100);
     delay(200);
     setMotorSpeedM1(-5);
     setMotorSpeedM2(-5);
-    ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO - 250);
+    servo0.write(80);
     delay(200);
   }
-  ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
+  servo0.write(90);
 
   ArduinoOTA.begin();  // enable to receive update/upload firmware via Wifi OTA
   lastCommandTime = millis();
@@ -529,12 +530,14 @@ void loop() {
 
     // Push1 Move servo arm
     if (OSCpush[0]) {
-      if (angle_adjusted > -40)
-        ledcWrite(PIN_SERVO, SERVO_MAX_PULSEWIDTH);
-      else
-        ledcWrite(PIN_SERVO, SERVO_MIN_PULSEWIDTH);
-    } else
-      ledcWrite(PIN_SERVO, SERVO_AUX_NEUTRO);
+      if (angle_adjusted > -40) {
+        servo0.write(180);
+      } else {
+        servo0.write(0);
+      }
+    } else {
+      servo0.write(90);
+    }
 
     // Servo2
     //ledcWrite(PIN_SERVO, SERVO2_NEUTRO + (OSCfader[2] - 0.5) * SERVO2_RANGE);

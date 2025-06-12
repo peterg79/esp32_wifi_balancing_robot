@@ -16,3 +16,4 @@ References:
 - https://www.pcbway.com/project/shareproject/ESP32_Balancing_Robot_Shield.html
 - https://www.thingiverse.com/thing:2306541
 - https://github.com/bobboteck/JoyStick
+- https://github.com/madhephaestus/ESP32Servo
