@@ -6,7 +6,6 @@
  */
 
 #include "secret.h"
-//#define I2C_DISABLED
 
 #include <Wire.h>
 #include <WiFi.h>
@@ -22,17 +21,17 @@
 #include <driver/ledc.h>
 #include <esp32-hal-ledc.h>
 
-#ifdef PS3_ENABLED
+#ifdef ENABLE_PS3
 #include <Ps3Controller.h>
-#define WEB_DISABLED
-#endif  // PS3_ENABLED
+#define DISABLE_WEB
+#endif  // ENABLE_PS3
 
-#ifndef WEB_DISABLED
+#ifndef DISABLE_WEB
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
 #include <LittleFS.h>
-#endif  // WEB_DISABLED
+#endif  // DISABLE_WEB
 
 #include "Control.h"
 #include "MPU6050.h"
@@ -60,10 +59,10 @@ Servo servo0;
 
 unsigned long previousMillis = 0;
 
-#ifndef WEB_DISABLED
+#ifndef DISABLE_WEB
 AsyncWebServer server(80);
 DNSServer dnsServer;
-#endif  // WEB_DISABLED
+#endif  // DISABLE_WEB
 
 unsigned long lastCommandTime;
 
@@ -75,7 +74,7 @@ void initMPU6050() {
 
 void initTimers();
 
-#ifndef WEB_DISABLED
+#ifndef DISABLE_WEB
 // Make size of files human readable
 // source: https://github.com/CelliesProjects/minimalUploadAuthESP32
 String humanReadableSize(const size_t bytes) {
@@ -172,9 +171,9 @@ void handleUpload(AsyncWebServerRequest* request, String filename, size_t index,
 bool filterHtml(AsyncWebServerRequest* request) {
   return request->url().endsWith("html") || request->url().endsWith("/");
 }
-#endif  // WEB_DISABLED
+#endif  // DISABLE_WEB
 
-#ifdef PS3_ENABLED
+#ifdef ENABLE_PS3
 int player = 0;
 int battery = 0;
 
@@ -455,7 +454,7 @@ void onConnect() {
   Serial.println("Connected.");
 }
 
-#endif  // PS3_ENABLED
+#endif  // ENABLE_PS3
 
 void setup() {
   Serial.begin(115200);  // set up seriamonitor at 115200 bps
@@ -486,14 +485,14 @@ void setup() {
   servo0.setTimerWidth(SERVO_TIMER_WIDTH);
   servo0.attach(PIN_SERVO, SERVO_MIN_PULSE_WIDTH, SERVO_MAX_PULSE_WIDTH);
 
-#ifndef I2C_DISABLED
+#ifndef DISABLE_I2C
   Wire.begin();
   initMPU6050();
-#endif  // I2C_DISABLED
+#endif  // DISABLE_I2C
 
   preferences.begin("robot", false);
 
-#ifdef PS3_ENABLED
+#ifdef ENABLE_PS3
 #ifdef PS3_MAC
   const String& ps3_mac = preferences.getString("ps3_mac", PS3_MAC);
 #else
@@ -512,7 +511,7 @@ void setup() {
   Ps3.attachOnConnect(onConnect);
   Ps3.begin(ps3_mac.c_str());
   Serial.println("PS3 Ready.");
-#endif  // PS3_ENABLED
+#endif  // ENABLE_PS3
   // Set NodeMCU Wifi hostname based on chip mac address
   char chip_id[15];
   snprintf(chip_id, 15, "%04X", (uint16_t)(ESP.getEfuseMac() >> 32));
@@ -577,7 +576,7 @@ void setup() {
     delay(2000);
   }
 
-#ifndef WEB_DISABLED
+#ifndef DISABLE_WEB
   Serial.println("Starting DNS Server");
   // redirecting any domain name (*) to the IP of ESP32
   dnsServer.start(53, "*", WiFi.softAPIP());
@@ -720,7 +719,7 @@ void setup() {
   if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
     Serial.println("LittleFS Mount Failed");
   }
-#endif  // WEB_DISABLED
+#endif  // DISABLE_WEB
 
   initTimers();
 
@@ -750,7 +749,7 @@ void setup() {
 }
 
 void loop() {
-#ifdef PS3_ENABLED
+#ifdef ENABLE_PS3
   static bool ps3_connected = false;
   if (Ps3.isConnected()) {
     if (!ps3_connected) {
@@ -760,7 +759,7 @@ void loop() {
   } else {
     ps3_connected = false;
   }
-#endif  // PS3_ENABLED
+#endif  // ENABLE_PS3
   if (millis() > lastCommandTime + 1000 * 60 * 10) {
     // deep sleep after 10 minues of inactivity
     setMotorSpeedM1(0);
@@ -778,7 +777,7 @@ void loop() {
 
   timer_value = micros();
 
-#ifndef I2C_DISABLED
+#ifndef DISABLE_I2C
   if (MPU6050_newData()) {
 
     MPU6050_read_3axis();
@@ -895,7 +894,7 @@ void loop() {
     }
 
   }     // End of new IMU data
-#endif  // I2C_DISABLED
+#endif  // DISABLE_I2C
 }
 
 
