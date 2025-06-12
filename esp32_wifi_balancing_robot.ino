@@ -23,10 +23,9 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
+#include <LittleFS.h>
 #endif  // WEB_DISABLED
 
-#include <FS.h>
-#include <LittleFS.h>
 #include <Preferences.h>
 
 #include "Control.h"
@@ -75,6 +74,7 @@ void initMPU6050() {
 
 void initTimers();
 
+#ifndef WEB_DISABLED
 // Make size of files human readable
 // source: https://github.com/CelliesProjects/minimalUploadAuthESP32
 String humanReadableSize(const size_t bytes) {
@@ -136,7 +136,6 @@ String processor(const String& var) {
   return String();
 }
 
-#ifndef WEB_DISABLED
 void notFound(AsyncWebServerRequest* request) {
   request->send(404, "text/plain", "Not found");
 }
@@ -259,7 +258,6 @@ void notify() {
 
   if (Ps3.event.button_down.left) {
     Serial.println("Started pressing the left button");
-    Serial.println("Started pressing the down button");
     if (maxturn > 1) maxturn -= 1;
     Serial.print("maxturn set to: ");
     Serial.println(maxturn, DEC);
@@ -335,6 +333,12 @@ void notify() {
     OSCfader[1] = x;
     Serial.printf("Setting X to %f", x);
     Serial.println();
+
+    float y = static_cast<float>(128 - (Ps3.data.analog.stick.ly * maxspeed / 10)) / 256;
+    y = static_cast<float>(static_cast<int>(y * 100 + .5)) / 100;
+    OSCfader[0] = y;
+    Serial.printf("Setting Y to %f", y);
+    Serial.println();
   }
 
   if (abs(Ps3.event.analog_changed.stick.rx) + abs(Ps3.event.analog_changed.stick.ry) > 2) {
@@ -349,6 +353,12 @@ void notify() {
     y = static_cast<float>(static_cast<int>(y * 100 + .5)) / 100;
     OSCfader[0] = y;
     Serial.printf("Setting Y to %f", y);
+    Serial.println();
+
+    float x = static_cast<float>(128 + (Ps3.data.analog.stick.rx * maxturn / 10)) / 256;
+    x = static_cast<float>(static_cast<int>(x * 100 + .5)) / 100;
+    OSCfader[1] = x;
+    Serial.printf("Setting X to %f", x);
     Serial.println();
   }
 
