@@ -206,6 +206,7 @@ void notify() {
   if (Ps3.event.button_down.triangle) {
     Serial.println("Started pressing the triangle button");
     Serial.println("Buzzer on!");
+#ifndef DISABLE_BUZZER
     digitalWrite(PIN_BUZZER, HIGH);
     delay(150);
     digitalWrite(PIN_BUZZER, LOW);
@@ -214,6 +215,16 @@ void notify() {
     delay(150);
     digitalWrite(PIN_BUZZER, LOW);
     delay(80);
+#else   // DISABLE_BUZZER
+    digitalWrite(PIN_LED, HIGH);
+    delay(150);
+    digitalWrite(PIN_LED, LOW);
+    delay(80);
+    digitalWrite(PIN_LED, HIGH);
+    delay(150);
+    digitalWrite(PIN_LED, LOW);
+    delay(80);
+#endif  // DISABLE_BUZZER
   }
   if (Ps3.event.button_up.triangle)
     Serial.println("Released the triangle button");
