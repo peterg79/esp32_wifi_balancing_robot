@@ -5,7 +5,7 @@ This self-balancing robot is based on [B-Robot][https://www.jjrobots.com/much-mo
 
 This repository is a fork of [bluino/esp32_wifi_balancing_robot](https://github.com/bluino/esp32_wifi_balancing_robot)
 
-To compile, install [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer) and [AsyncTCP](https://github.com/ESP32Async/AsyncTCP) libraries.
+To compile, install [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer), [AsyncTCP](https://github.com/ESP32Async/AsyncTCP) and [ESP32Servo](https://github.com/madhephaestus/ESP32Servo) libraries.
 Then, copy [secret-template.h](secret-template.h) to `secret.h` and edit credentials there.
 Install [littlefs-uploader](https://github.com/earlephilhower/arduino-littlefs-upload) and upload static content (`index.html` and `index.css`) to the ESP32.
 
@@ -16,3 +16,4 @@ References:
 - https://www.pcbway.com/project/shareproject/ESP32_Balancing_Robot_Shield.html
 - https://www.thingiverse.com/thing:2306541
 - https://github.com/bobboteck/JoyStick
+- https://github.com/madhephaestus/ESP32Servo
