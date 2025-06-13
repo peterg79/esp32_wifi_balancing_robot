@@ -117,6 +117,7 @@
 #define MPU6050_D7 7
 
 // AUX_VDDIO Register
+#undef MPU6050_AUX_VDDIO
 #define MPU6050_AUX_VDDIO MPU6050_D7  // I2C high: 1=VDD, 0=VLOGIC
 
 // CONFIG Register
@@ -360,6 +361,7 @@
 #define MPU6050_FIFO_RESET MPU6050_D2
 #define MPU6050_I2C_IF_DIS MPU6050_D4  // must be 0 for MPU-6050
 #define MPU6050_I2C_MST_EN MPU6050_D5
+#undef MPU6050_FIFO_EN
 #define MPU6050_FIFO_EN MPU6050_D6
 
 // PWR_MGMT_1 Register
@@ -431,7 +433,7 @@
 // lower address, so that has to be corrected.
 // The register part "reg" is only used internally,
 // and are swapped in code.
-typedef union accel_t_gyro_union {
+union accel_t_gyro_union {
   struct
   {
     uint8_t x_accel_h;

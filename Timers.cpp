@@ -13,8 +13,8 @@
 #include "freertos/queue.h"
 #include "esp_types.h"
 #include "soc/timer_group_struct.h"
-#include "driver/periph_ctrl.h"
-#include "driver/timer.h"
+//#include "driver/periph_ctrl.h"
+#include "driver/gptimer.h"
 #include "esp32-hal-timer.h"
 
 extern "C" {
@@ -30,9 +30,9 @@ extern "C" {
 			digitalWrite(PIN_MOTOR1_STEP, HIGH);
 
 			if (dir_M1 > 0)
-				steps1--;
+				steps1-=1;
 			else
-				steps1++;
+				steps1+=1;
 
 			digitalWrite(PIN_MOTOR1_STEP, LOW);
 		}
@@ -47,9 +47,9 @@ extern "C" {
 			digitalWrite(PIN_MOTOR2_STEP, HIGH);
 
 			if (dir_M2 > 0)
-				steps2--;
+				steps2-=1;
 			else
-				steps2++;
+				steps2+=1;
 
 			digitalWrite(PIN_MOTOR2_STEP, LOW);
 		}
