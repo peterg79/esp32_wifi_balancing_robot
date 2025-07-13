@@ -23,7 +23,12 @@
 
 #ifdef ENABLE_PS3
 #include <Ps3Controller.h>
+#ifndef ENABLE_WEB
 #define DISABLE_WEB
+#warning "Web control disabled"
+#else
+#warning "Both Web control and PS3 control enabled"
+#endif // ENABLE_WEB
 #endif  // ENABLE_PS3
 
 #ifndef DISABLE_WEB
@@ -345,11 +350,13 @@ void notify() {
     Serial.printf("Setting X to %f", x);
     Serial.println();
 
+#ifdef PS3_LEFT_JOY_SPEED
     float y = static_cast<float>(128 - (Ps3.data.analog.stick.ly * maxspeed / 10)) / 256;
     y = static_cast<float>(static_cast<int>(y * 100 + .5)) / 100;
     OSCfader[0] = y;
     Serial.printf("Setting Y to %f", y);
     Serial.println();
+#endif  // PS3_LEFT_JOY_SPEED
   }
 
   if (abs(Ps3.event.analog_changed.stick.rx) + abs(Ps3.event.analog_changed.stick.ry) > 2) {
@@ -366,11 +373,13 @@ void notify() {
     Serial.printf("Setting Y to %f", y);
     Serial.println();
 
+#ifdef PS3_RIGHT_JOY_TURN
     float x = static_cast<float>(128 + (Ps3.data.analog.stick.rx * maxturn / 10)) / 256;
     x = static_cast<float>(static_cast<int>(x * 100 + .5)) / 100;
     OSCfader[1] = x;
     Serial.printf("Setting X to %f", x);
     Serial.println();
+#endif  // PS3_RIGHT_JOY_TURN
   }
 
   //--------------- Analog D-pad button events ----------------
